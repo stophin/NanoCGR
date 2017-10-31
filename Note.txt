@@ -1,0 +1,3 @@
+Windows使用IOCP会比Linux使用Epoll多一个线程：
+Windows下需要主线程不断accept用户连接，然后为每一个连接设置IOCP，然后在线程中接收消息。
+Linux下使用epoll_wait方式来accept用户连接，遍历所有event接收消息，所以不需要线程。
