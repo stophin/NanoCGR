@@ -13,6 +13,7 @@ public:
 
 public:
 	virtual void Init();
+	virtual void MainLoop();
 };
 
 extern "C" __NANOC_EXPORT__ INanoCImp * GetNanoCImp();

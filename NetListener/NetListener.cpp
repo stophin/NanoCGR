@@ -84,7 +84,7 @@ void NetListener::Init() {
 		sockaddr_in stAddr = { 0 };
 		stAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 		stAddr.sin_family = AF_INET;
-		stAddr.sin_port = htons(6000);
+		stAddr.sin_port = htons(9005);
 
 		int iRc = bind(hListenSocket, (sockaddr*)&stAddr, sizeof(stAddr));
 		if (iRc < 0) {

@@ -6,13 +6,38 @@
 NanoCImp::NanoCImp() {
 	printf("NanoCImp is registered\n");
 	GetNanoC()->SetModelInstance(this);
+	c_l = '0';
 }
 NanoCImp::~NanoCImp() {
 
 }
 
 void NanoCImp::Init() {
-	printf("This is NanoCImp\n");
+	printf("This is NanoCImp Init\n");
+}
+
+void NanoCImp::MainLoop() {
+	printf("This is NanoCImp MainLoop\n");
+
+	char str[512];
+	int ind = 0;
+	while (true) {
+		if (ind < 512) {
+			str[ind++] = getchar();
+
+			if (str[ind - 1] == '\n') {
+				str[ind - 1] = '\0';
+				ind = 0;
+				printf("%s\n", str);
+
+				if (!strcmp(str, "exit")) {
+					break;
+				}
+			}
+		}
+	}
+
+	printf("This is NanoCImp MainLoop End\n");
 }
 
 NanoCImp g_NanoCImp;

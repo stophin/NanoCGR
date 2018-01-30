@@ -10,6 +10,7 @@
 class INanoCModel {
 public:
 	virtual void Init() = 0;
+	virtual void MainLoop() = 0;
 };
 
 class INanoC {
