@@ -6,7 +6,6 @@
 NanoCImp::NanoCImp() {
 	printf("NanoCImp is registered\n");
 	GetNanoC()->SetModelInstance(this);
-	c_l = '0';
 }
 NanoCImp::~NanoCImp() {
 
