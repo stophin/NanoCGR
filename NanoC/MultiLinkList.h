@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform.h"
+#include "NanoType.h"
 
 template <typename T>
 class MultiLinkList

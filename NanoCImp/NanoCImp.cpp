@@ -20,18 +20,17 @@ void NanoCImp::MainLoop() {
 
 	char str[512];
 	int ind = 0;
+	MultiLinkList<CharString> * msgQueue;
 	while (true) {
-		if (ind < 512) {
-			str[ind++] = getchar();
+		msgQueue = &GetNanoC()->msgQueue;
+		if (msgQueue->linkcount > 0) {
+			CharString * charString = msgQueue->getPos(0);
+			if (NULL != charString) {
+				msgQueue->removeLink(charString);
 
-			if (str[ind - 1] == '\n') {
-				str[ind - 1] = '\0';
-				ind = 0;
-				printf("%s\n", str);
+				printf("NanoCImp Get: %s\n", charString->str);
 
-				if (!strcmp(str, "exit")) {
-					break;
-				}
+				delete charString;
 			}
 		}
 	}

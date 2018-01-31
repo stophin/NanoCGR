@@ -69,6 +69,11 @@ void NanoC::MainLoop() {
 __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 	printf("This is MainThread\n");
 
+	NanoC * pThis = (NanoC*)pv;
+	if (NULL == pThis) {
+		__NANOC_THREAD_FUNC_END__(0);
+	}
+
 	//从这里获取网络监听消息
 	while (true) {
 		MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
@@ -77,9 +82,8 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				printf("Get: %s\n", charString->str);
-
-				delete charString;
+				//printf("Get: %s\n", charString->str);
+				pThis->msgQueue.insertLink(charString);
 			}
 		}
 	}

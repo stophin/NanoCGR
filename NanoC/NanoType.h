@@ -4,6 +4,8 @@
 
 #pragma once
 
+//#define _NANOC_WINDOWS_
+
 #ifdef _NANOC_WINDOWS_
 
 typedef signed char         INT8, *PINT8;
@@ -17,7 +19,30 @@ typedef unsigned __int64    UINT64, *PUINT64;
 
 typedef INT64 SIZE_INT;
 
+typedef INT32 INT;
+typedef void VOID;
+
 #else
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <dlfcn.h>
+#include <pthread.h>
+#include<signal.h>
+
+#include <errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>			/* socket类定义需要*/
+#include <sys/epoll.h>			/* epoll头文件 */
+#include <fcntl.h>	            /* nonblocking需要 */
+#include <sys/resource.h>		/* 设置最大的连接数需要setrlimit */
+
+#include <stdlib.h>
+#include <termios.h>
+#include <sys/types.h>
+#include <sys/time.h>
 
 typedef signed char         INT8, *PINT8;
 typedef signed short        INT16, *PINT16;
