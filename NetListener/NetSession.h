@@ -7,6 +7,14 @@
 
 #ifdef _NANOC_WINDOWS_
 
+class INetSession {
+public:
+	INetSession() : bIfUse(false) {
+	}
+	INT iSessionID;
+	BOOL bIfUse;
+};
+
 /**
 * 结构体名称：PER_IO_DATA
 * 结构体功能：重叠I/O需要用到的结构体，临时记录IO数据
@@ -18,6 +26,7 @@ typedef struct
 	char buffer[1025];
 	int BufferLen;
 	int operationType;
+	INetSession * netSession;
 }PER_IO_OPERATEION_DATA, *LPPER_IO_OPERATION_DATA, *LPPER_IO_DATA, PER_IO_DATA;
 /**
 * 结构体名称：PER_HANDLE_DATA
@@ -30,12 +39,11 @@ typedef struct
 	SOCKADDR_STORAGE ClientAddr;
 }PER_HANDLE_DATA, *LPPER_HANDLE_DATA;
 
-class NetSession {
+class NetSession : public INetSession {
 public:
 	NetSession();
 	~NetSession();
 
-	BOOL bIfUse;
 	PER_HANDLE_DATA handleData;;
 	PER_IO_OPERATEION_DATA operationData;
 };

@@ -138,11 +138,13 @@ void NetListener::MainLoop() {
 			}
 		}
 
+		//获取一个net session
 		NetSession * session = netSession.GetFreeSession();
 		if (NULL == session) {
 			printf("Error create session\n");
 			un32RetFlag = -1;
 		}
+		printf("Created session on id: %d\n", session->iSessionID);
 
 		if (0 == un32RetFlag) {
 			// 创建用来和套接字关联的单句柄数据信息结构
@@ -181,7 +183,7 @@ void NetListener::MainLoop() {
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
 	UINT32 un32RetFlag;
-	INetListener * pThis = (INetListener*)pv;
+	NetListener * pThis = (NetListener*)pv;
 	if (NULL == pThis) {
 		__NANOC_THREAD_FUNC_END__(0);
 	}
@@ -198,29 +200,42 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	while (true) {
 		un32RetFlag = 0;
 		bRet = GetQueuedCompletionStatus(pThis->hCompletionPort, &BytesTransferred, (PULONG_PTR)&PerHandleData, (LPOVERLAPPED*)&IpOverlapped, INFINITE);
-		if (0 == bRet){
-			printf("IOCP error: %d\n", GetLastError());
-			un32RetFlag = -1;
-		}
-		if (NULL == PerHandleData) {
-			printf("Recv error: %d\n", GetLastError());
-			un32RetFlag = -1;
+
+		if (0 == un32RetFlag) {
+			if (NULL == IpOverlapped) {
+				printf("Recv error: %d, overflapped error\n", GetLastError());
+				un32RetFlag = -1;
+			}
 		}
 
 		if (0 == un32RetFlag) {
 			PerIoData = (LPPER_IO_DATA)CONTAINING_RECORD(IpOverlapped, PER_IO_DATA, overlapped);
+			if (NULL == PerHandleData) {
+				printf("Recv error: %d on session ID: %d\n", GetLastError(), PerIoData->netSession->iSessionID);
+				//un32RetFlag = -1;
+			}
+		}
 
+		if (0 == un32RetFlag) {
+			if (0 == bRet){
+				printf("IOCP error: %d on session ID: %d\n", GetLastError(), PerIoData->netSession->iSessionID);
+				//un32RetFlag = -1;
+			}
+		}
+
+		if (0 == un32RetFlag) {
 			// 检查在套接字上是否有错误发生
 			if (0 == BytesTransferred){
 				closesocket(PerHandleData->socket);
-				GlobalFree(PerHandleData);
-				GlobalFree(PerIoData);
+				//GlobalFree(PerHandleData);
+				//GlobalFree(PerIoData);
+				PerIoData->netSession->bIfUse = false;
 				continue;
 			}
 
 			// 开始数据处理，接收来自客户端的数据
 			WaitForSingleObject(hMutex, INFINITE);
-			printf("A Client says: %s\n", PerIoData->databuff.buf);
+			printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
 			ReleaseMutex(hMutex);
 
 			// 为下一个重叠调用建立单I/O操作数据
@@ -287,7 +302,7 @@ void NetListener::Init() {
 		sockaddr_in stAddr = { 0 };
 		stAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		stAddr.sin_family = AF_INET;
-		stAddr.sin_port = htons(6000);
+		stAddr.sin_port = htons(9005);
 
 		int iRc = bind(hListenSocket, (sockaddr*)&stAddr, sizeof(stAddr));
 		if (iRc < 0) {
@@ -362,6 +377,7 @@ void NetListener::MainLoop() {
 		un32RetFlag = 0;
 
 		if (0 == un32RetFlag) {
+			//返回epoll获取的消息数，并copy数据到event里面
 			wait_fds = epoll_wait(epoll_fd, evs, cur_fds, -1);
 			if (wait_fds == -1) {
 				printf("Epoll wait error: %d\n", errno);
@@ -370,7 +386,9 @@ void NetListener::MainLoop() {
 		}
 
 		if (0 == un32RetFlag) {
+			//遍历event
 			for (int i = 0; i < wait_fds; i++) {
+				//accept连接请求
 				if (evs[i].data.fd == hListenSocket && cur_fds < MAXEPOLL) {
 					conn_fds = accept(hListenSocket, (sockaddr*)&cliaddr, &len);
 					if (INVALID_SOCKET == conn_fds) {
@@ -379,7 +397,7 @@ void NetListener::MainLoop() {
 					}
 
 					if (0 == un32RetFlag) {
-						printf("Server fot from client\n");
+						printf("Create session on id: %d\n", conn_fds);
 
 						ev.events = EPOLLIN | EPOLLET;
 						ev.data.fd = conn_fds;
@@ -399,12 +417,13 @@ void NetListener::MainLoop() {
 				if (0 == un32RetFlag) {
 					nRead = read(evs[i].data.fd, buf, sizeof(buf));
 					if (nRead <= 0) {
+						printf("Recv error on session ID: %d\n", evs[i].data.fd);
 						close(evs[i].data.fd);
 						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
 						--cur_fds;
 						continue;
 					}
-					printf("Recvd: %s\n", buf);
+					printf("SID %d: %s\n", evs[i].data.fd, buf);
 					//write(evs[i].data.fd, buf, nRead);
 				}
 			}

@@ -35,6 +35,9 @@ void NanoC::Sleep(INT32 n32MilliSecond) {
 void NanoC::Init() {
 	printf("This is NanoC Init\n");
 
+	//当load这个dll时，会调用dll接口实现的构造函数
+	//而该构造函数会通过SetModelInstance把自己注册到
+	//本类的iModel中，最后使用iModel进行调用。
 	__NANOC_DLLOAD__(hInstance, "nanocimp");
 	if (NULL == hInstance) {
 		printf("Instance load failed\n");

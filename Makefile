@@ -38,14 +38,14 @@ run_s:
 	
 ##################################
 clean_d:
+	make -C NetListener clean_d
 	make -C NanoC clean_d
 	make -C NanoCImp clean_d
-	make -C NetListener clean_d
 	make -C NanoCGR clean_d
 	
 clean_s:
+	make -C NetListener clean_s
 	make -C NanoC clean_s
 	make -C NanoCImp clean_s
-	make -C NetListener clean_s
 	make -C NanoCGR clean_s
 ##################################
