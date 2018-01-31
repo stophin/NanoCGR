@@ -38,6 +38,8 @@ void NetListener::CleanUp() {
 
 void NetListener::Init() {
 	UINT32 un32RetFlag = 0;
+	UINT32 un32StateFlag = 0;
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		// 初始化Socket库  
 		WSADATA wsaData;
@@ -45,19 +47,21 @@ void NetListener::Init() {
 		if (0 != iRc) {
 			printf("Socket initialize error: return code %d\n", iRc);
 
-			un32RetFlag = -1;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		//创建IOCP内核对象
 		this->hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 		if (NULL == hCompletionPort) {
 			printf("Error create IOCP\n");
-			un32RetFlag = -1;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		//bind listen socket with io completion port
 		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
@@ -65,20 +69,37 @@ void NetListener::Init() {
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
-			un32RetFlag = -7;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		//创建流式套接字，绑定到本机
 		//this->hListenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 		this->hListenSocket = socket(AF_INET, SOCK_STREAM, 0);
 		if (INVALID_SOCKET == hListenSocket) {
 			printf("Error create socket: %d\n", WSAGetLastError());
-			un32RetFlag = -2;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
+	if (0 == un32RetFlag) {
+		// Associate SOCKET with IOCP  
+		if (NULL == CreateIoCompletionPort((HANDLE)this->hListenSocket, this->hCompletionPort, NULL, 0))
+		{
+			cout << "CreateIoCompletionPort failed with error code: " << WSAGetLastError() << endl;
+			if (INVALID_SOCKET != this->hListenSocket)
+			{
+				closesocket(this->hListenSocket);
+				this->hListenSocket = INVALID_SOCKET;
+			}
+			un32RetFlag = un32StateFlag;
+		}
+	}
+
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		//绑定到本机
 		sockaddr_in stAddr = { 0 };
@@ -89,20 +110,35 @@ void NetListener::Init() {
 		int iRc = bind(hListenSocket, (sockaddr*)&stAddr, sizeof(stAddr));
 		if (iRc < 0) {
 			printf("Socket bind error: %d\n", errno);
-			un32RetFlag = -5;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
 	if (0 == un32RetFlag) {
 		//将套接字设置为监听模式
 		//start listen, 128 backup connection times
 		int iRc = listen(hListenSocket, 128);
 		if (iRc < 0) {
 			printf("Socket listen error: %d\n", errno);
-			un32RetFlag = -6;
+			un32RetFlag = un32StateFlag;
 		}
 	}
 
+	un32StateFlag--;
+	if (0 == un32RetFlag) {
+		for (int i = this->netSession.getSize(); i > 0; i--) {
+			NetSession * session = this->netSession.GetFreeSession();
+			if (NULL == session) {
+				break;
+			}
+			if (MakeFreeIOCompletionPort(session)) {
+				break;
+			}
+		}
+	}
+
+	un32StateFlag--;
 	if (0 != un32RetFlag){
 		printf("Error: %d\n", un32RetFlag);
 		this->CleanUp();
@@ -111,6 +147,68 @@ void NetListener::Init() {
 		printf("NetListener initialized successfully!\n");
 		this->bIfInitialized = true;
 	}
+}
+
+UINT32 NetListener::MakeFreeIOCompletionPort(NetSession* session) {
+	UINT32 un32RetFlag = 0;
+	if (NULL == session) {
+		return un32RetFlag;
+	}
+
+	//使用AcceptEx接收客户端连接而不是开辟线程等待连接
+	LPFN_ACCEPTEX lpfnAcceptEx = NULL;//AcceptEx函数指针
+	GUID guidAcceptEx = WSAID_ACCEPTEX;
+	DWORD dwBytes = 0;
+
+	SOCKET acceptSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (INVALID_SOCKET == acceptSocket)
+	{
+		printf("WSASocket failed with error code: %d\n", WSAGetLastError());
+		un32RetFlag = -1;
+	}
+
+	if (0 == un32RetFlag) {
+		// 开始在接受套接字上处理I/O使用重叠I/O机制
+		// 在新建的套接字上投递一个或多个异步
+		// WSARecv或WSASend请求，这些I/O请求完成后，工作者线程会为I/O请求提供服务    
+		// 单I/O操作数据(I/O重叠)
+		LPPER_IO_OPERATION_DATA PerIoData = NULL;
+		//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
+		PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
+		ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED));
+		PerIoData->databuff.len = 1024;
+		PerIoData->databuff.buf = PerIoData->buffer;
+		PerIoData->operationType = 1;  // read
+		PerIoData->client = acceptSocket;
+
+		if (SOCKET_ERROR == WSAIoctl(this->hListenSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx), &lpfnAcceptEx,
+			sizeof(lpfnAcceptEx), &dwBytes, NULL, NULL))
+		{
+			printf("WSAIoctl failed with error code: %d\n", WSAGetLastError());
+			if (INVALID_SOCKET != this->hListenSocket)
+			{
+				closesocket(this->hListenSocket);
+				this->hListenSocket = INVALID_SOCKET;
+			}
+			//goto EXIT_CODE;
+			un32RetFlag = -1;
+		}
+
+		if (0 == un32RetFlag) {
+			if (FALSE == lpfnAcceptEx(this->hListenSocket, PerIoData->client, PerIoData->databuff.buf, PerIoData->databuff.len - ((sizeof(SOCKADDR_IN)+16) * 2),
+				sizeof(SOCKADDR_IN)+16, sizeof(SOCKADDR_IN)+16, &dwBytes, &(PerIoData->overlapped)))
+			{
+				if (WSA_IO_PENDING != WSAGetLastError())
+				{
+					printf("lpfnAcceptEx failed with error code: %d\n", WSAGetLastError());
+
+					un32RetFlag = -1;
+				}
+			}
+		}
+	}
+
+	return un32RetFlag;
 }
 
 void NetListener::MainLoop() {
@@ -122,70 +220,10 @@ void NetListener::MainLoop() {
 
 	printf("Waiting for client connection...\n");
 
-	SOCKET acceptSocket;
-	SOCKADDR_IN saRemote;
-	INT32 remoteLen;
-	PER_HANDLE_DATA * PerHandleData = NULL;
-	while (true) {
-		un32RetFlag = 0;
-		if (0 == un32RetFlag) {
-			//接收客户端的连接
-			remoteLen = sizeof(saRemote);
-			acceptSocket = accept(hListenSocket, (SOCKADDR*)&saRemote, &remoteLen);
-			if (SOCKET_ERROR == acceptSocket) {
-				printf("Accept error: %d\n", GetLastError());
-				un32RetFlag = -1;
-			}
-		}
 
-		//获取一个net session
-		NetSession * session = netSession.GetFreeSession();
-		if (NULL == session) {
-			printf("Error create session\n");
-			un32RetFlag = -1;
-		}
-		printf("Created session on id: %d\n", session->iSessionID);
-
-		if (0 == un32RetFlag) {
-			// 创建用来和套接字关联的单句柄数据信息结构
-			//PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// 在堆中为这个PerHandleData申请指定大小的内存
-			PerHandleData = (LPPER_HANDLE_DATA)&session->handleData;
-			PerHandleData->socket = acceptSocket;
-			memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
-			//客户端套接字和完成端口关联
-			HANDLE hResult = ::CreateIoCompletionPort((HANDLE)acceptSocket, hCompletionPort, (SIZE_INT)PerHandleData, 0);
-			if (NULL == hCompletionPort) {
-				printf("Error connect IOCP\n");
-				un32RetFlag = -1;
-			}
-		}
-
-		if (0 == un32RetFlag) {
-			// 开始在接受套接字上处理I/O使用重叠I/O机制
-			// 在新建的套接字上投递一个或多个异步
-			// WSARecv或WSASend请求，这些I/O请求完成后，工作者线程会为I/O请求提供服务	
-			// 单I/O操作数据(I/O重叠)
-			LPPER_IO_OPERATION_DATA PerIoData = NULL;
-			//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
-			PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
-			ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED));
-			PerIoData->databuff.len = 1024;
-			PerIoData->databuff.buf = PerIoData->buffer;
-			PerIoData->operationType = 0;	// read
-
-			DWORD RecvBytes;
-			DWORD Flags = 0;
-			WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
-		}
-	}
-}
-
-__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
-	printf("This is IOCPThread\n");
-	UINT32 un32RetFlag;
-	NetListener * pThis = (NetListener*)pv;
+	NetListener * pThis = (NetListener*)this;
 	if (NULL == pThis) {
-		__NANOC_THREAD_FUNC_END__(0);
+		return;
 	}
 
 	DWORD BytesTransferred;
@@ -210,7 +248,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 		if (0 == un32RetFlag) {
 			PerIoData = (LPPER_IO_DATA)CONTAINING_RECORD(IpOverlapped, PER_IO_DATA, overlapped);
-			if (NULL == PerHandleData) {
+			if (NULL == PerIoData) {
 				printf("Recv error: %d on session ID: %d\n", GetLastError(), PerIoData->netSession->iSessionID);
 				//un32RetFlag = -1;
 			}
@@ -218,6 +256,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 		if (0 == un32RetFlag) {
 			if (0 == bRet){
+				if (WAIT_TIMEOUT == GetLastError())
+				{
+					continue;
+				}
 				printf("IOCP error: %d on session ID: %d\n", GetLastError(), PerIoData->netSession->iSessionID);
 				//un32RetFlag = -1;
 			}
@@ -226,27 +268,82 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		if (0 == un32RetFlag) {
 			// 检查在套接字上是否有错误发生
 			if (0 == BytesTransferred){
-				closesocket(PerHandleData->socket);
+				//closesocket(PerHandleData->socket);
 				//GlobalFree(PerHandleData);
 				//GlobalFree(PerIoData);
-				PerIoData->netSession->bIfUse = false;
+				//PerIoData->netSession->bIfUse = false;
+
+				//重新为session配置socket连接
+				MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
 				continue;
 			}
 
-			// 开始数据处理，接收来自客户端的数据
-			WaitForSingleObject(hMutex, INFINITE);
-			printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
-			ReleaseMutex(hMutex);
+			if (PerIoData->operationType == 1) {//accept 
+				//获取一个net session
+				//NetSession * session = netSession.GetFreeSession();
+				NetSession * session = (NetSession*)PerIoData->netSession;
+				if (NULL == session) {
+					printf("Error create session\n");
+					un32RetFlag = -1;
+				}
 
-			// 为下一个重叠调用建立单I/O操作数据
-			ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
-			PerIoData->databuff.len = 1024;
-			PerIoData->databuff.buf = PerIoData->buffer;
-			PerIoData->operationType = 0;	// read
-			WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
+				if (0 == un32RetFlag) {
+					printf("Created session on id: %d\n", session->iSessionID);
+					// 创建用来和套接字关联的单句柄数据信息结构
+					//PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// 在堆中为这个PerHandleData申请指定大小的内存
+					PerHandleData = (LPPER_HANDLE_DATA)&session->handleData;
+					PerHandleData->socket = PerIoData->client;
+					//memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
+					//客户端套接字和完成端口关联
+					HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, hCompletionPort, (SIZE_INT)PerHandleData, 0);
+					if (NULL == hCompletionPort) {
+						printf("Error connect IOCP\n");
+						un32RetFlag = -1;
+					}
+				}
+
+				if (0 == un32RetFlag) {
+					// 开始在接受套接字上处理I/O使用重叠I/O机制
+					// 在新建的套接字上投递一个或多个异步
+					// WSARecv或WSASend请求，这些I/O请求完成后，工作者线程会为I/O请求提供服务	
+					// 单I/O操作数据(I/O重叠)
+					LPPER_IO_OPERATION_DATA PerIoData = NULL;
+					//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
+					PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
+					ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED));
+					PerIoData->databuff.len = 1024;
+					PerIoData->databuff.buf = PerIoData->buffer;
+					PerIoData->operationType = 0;	// read
+
+					DWORD RecvBytes;
+					DWORD Flags = 0;
+					WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
+				}
+			}
+			else {//data
+				// 开始数据处理，接收来自客户端的数据
+				WaitForSingleObject(hMutex, INFINITE);
+				printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
+				ReleaseMutex(hMutex);
+
+				// 为下一个重叠调用建立单I/O操作数据
+				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
+				PerIoData->databuff.len = 1024;
+				PerIoData->databuff.buf = PerIoData->buffer;
+				PerIoData->operationType = 0;	// read
+				WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
+			}
 		}
 	}
+}
 
+__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
+	printf("This is IOCPThread\n");
+
+	NetListener * pThis = (NetListener*)pv;
+	if (NULL == pThis) {
+		__NANOC_THREAD_FUNC_END__(0);
+	}
 
 	printf("IOCPThread exited\n");
 	__NANOC_THREAD_FUNC_END__(0);
@@ -433,7 +530,7 @@ void NetListener::MainLoop() {
 
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
-	UINT32 un32RetFlag;
+
 	INetListener * pThis = (INetListener*)pv;
 	if (NULL == pThis) {
 		__NANOC_THREAD_FUNC_END__(0);

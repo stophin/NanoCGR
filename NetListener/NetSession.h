@@ -27,6 +27,7 @@ typedef struct
 	int BufferLen;
 	int operationType;
 	INetSession * netSession;
+	SOCKET client;
 }PER_IO_OPERATEION_DATA, *LPPER_IO_OPERATION_DATA, *LPPER_IO_DATA, PER_IO_DATA;
 /**
 * 结构体名称：PER_HANDLE_DATA
@@ -54,6 +55,8 @@ public:
 	~NetSessionManager();
 
 	NetSession * GetFreeSession();
+
+	INT32 getSize();
 private:
 	INT32 n32Size;
 	NetSession * netSession;

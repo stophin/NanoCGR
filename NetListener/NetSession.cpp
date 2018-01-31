@@ -39,6 +39,10 @@ NetSession * NetSessionManager::GetFreeSession() {
 	}
 	return NULL;
 }
+
+INT32 NetSessionManager::getSize() {
+	return this->n32Size;
+}
 #else
 
 #define MAXEPOLL 1000

@@ -21,6 +21,8 @@ public:
 	BOOL bIfInitialized;
 #ifdef _NANOC_WINDOWS_
 	NetSessionManager netSession;
+
+	UINT32 MakeFreeIOCompletionPort(NetSession* session);
 #else
 #endif
 };
