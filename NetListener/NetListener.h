@@ -14,7 +14,6 @@ public:
 	void CleanUp();
 public:
 	virtual void Init();
-	virtual void MainLoop();
 
 	__NANOC_THREAD_FUNC_DECLARE(m_phIOThread, IOCPThread);
 public:

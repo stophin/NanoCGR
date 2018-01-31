@@ -81,12 +81,16 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CharString.h" />
     <ClInclude Include="INanoC.h" />
+    <ClInclude Include="MultiLinkList.h" />
     <ClInclude Include="NanoC.h" />
     <ClInclude Include="NanoType.h" />
     <ClInclude Include="Platform.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CharString.cpp" />
+    <ClCompile Include="MultiLinkList.cpp" />
     <ClCompile Include="NanoC.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

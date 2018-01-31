@@ -61,17 +61,17 @@ void NetListener::Init() {
 		}
 	}
 
-	//n32StateFlag--;
-	//if (0 == n32RetFlag) {
-	//	//bind listen socket with io completion port
-	//	//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
-	//	//start io thread
-	//	__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
-	//	if (NULL == m_phIOThread) {
-	//		printf("IOCP thread start error\n");
-	//		n32RetFlag = n32StateFlag;
-	//	}
-	//}
+	n32StateFlag--;
+	if (0 == n32RetFlag) {
+		//bind listen socket with io completion port
+		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
+		//start io thread
+		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
+		if (NULL == m_phIOThread) {
+			printf("IOCP thread start error\n");
+			n32RetFlag = n32StateFlag;
+		}
+	}
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
@@ -212,20 +212,19 @@ INT32 NetListener::MakeFreeIOCompletionPort(NetSession* session) {
 	return n32RetFlag;
 }
 
-void NetListener::MainLoop() {
-	INT32 n32RetFlag = 0;
-	if (!bIfInitialized) {
-		printf("NetListener not initialized!\n");
-		return;
+
+__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
+	printf("This is IOCPThread\n");
+
+	NetListener * pThis = (NetListener*)pv;
+	if (NULL == pThis) {
+		__NANOC_THREAD_FUNC_END__(0);
 	}
+
+
+	INT32 n32RetFlag = 0;
 
 	printf("Waiting for client connection...\n");
-
-
-	NetListener * pThis = (NetListener*)this;
-	if (NULL == pThis) {
-		return;
-	}
 
 	DWORD BytesTransferred;
 	LPOVERLAPPED IpOverlapped;
@@ -275,7 +274,7 @@ void NetListener::MainLoop() {
 				//PerIoData->netSession->bIfUse = false;
 
 				//重新为session配置socket连接
-				MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
+				pThis->MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
 				continue;
 			}
 
@@ -298,8 +297,8 @@ void NetListener::MainLoop() {
 						   PerHandleData->socket = PerIoData->client;
 						   //memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
 						   //客户端套接字和完成端口关联
-						   HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, hCompletionPort, (SIZE_INT)PerHandleData, 0);
-						   if (NULL == hCompletionPort) {
+						   HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, pThis->hCompletionPort, (SIZE_INT)PerHandleData, 0);
+						   if (NULL == pThis->hCompletionPort) {
 							   printf("Error connect IOCP\n");
 							   n32RetFlag = -1;
 						   }
@@ -317,9 +316,6 @@ void NetListener::MainLoop() {
 						   PerIoData->databuff.len = 1024;
 						   PerIoData->databuff.buf = PerIoData->buffer;
 						   PerIoData->operationType = 0;	// read
-
-						   DWORD RecvBytes;
-						   DWORD Flags = 0;
 						   WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
 					   }
 					   break;
@@ -328,8 +324,12 @@ void NetListener::MainLoop() {
 			{
 						// 开始数据处理，接收来自客户端的数据
 						WaitForSingleObject(hMutex, INFINITE);
-						printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
+						//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
+						//获取网络消息发送保存到队列里面
+						CharString * charString = new CharString(PerIoData->databuff.buf);
 						ReleaseMutex(hMutex);
+						charString->f = pThis->msgQueue.linkcount;
+						pThis->msgQueue.insertSort(charString);
 
 						// 为下一个重叠调用建立单I/O操作数据
 						ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
@@ -340,15 +340,6 @@ void NetListener::MainLoop() {
 			}
 			}
 		}
-	}
-}
-
-__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
-	printf("This is IOCPThread\n");
-
-	NetListener * pThis = (NetListener*)pv;
-	if (NULL == pThis) {
-		__NANOC_THREAD_FUNC_END__(0);
 	}
 
 	printf("IOCPThread exited\n");
@@ -372,17 +363,15 @@ void NetListener::Init() {
 	INT32 n32RetFlag = 0;
 	INT32 n32StateFlag = 0;
 	
-	//n32StateFlag--;
-	//if (0 == n32RetFlag) {
-	//	//bind listen socket with io completion port
-	//	//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
-	//	//start io thread
-	//	__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
-	//	if (NULL == m_phIOThread) {
-	//		printf("IOCP thread start error\n");
-	//		n32RetFlag = -7;
-	//	}
-	//}
+	n32StateFlag--;
+	if (0 == n32RetFlag) {
+		//start io thread
+		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
+		if (NULL == m_phIOThread) {
+			printf("IOCP thread start error\n");
+			n32RetFlag = n32StateFlag;
+		}
+	}
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
@@ -467,12 +456,15 @@ void NetListener::Init() {
 	}
 }
 
-void NetListener::MainLoop() {
-	INT32 n32RetFlag = 0;
-	if (!bIfInitialized) {
-		printf("NetListener not initialized!\n");
-		return;
+__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
+	printf("This is IOCPThread\n");
+
+	INetListener * pThis = (INetListener*)pv;
+	if (NULL == pThis) {
+		__NANOC_THREAD_FUNC_END__(0);
 	}
+
+	INT32 n32RetFlag = 0;
 
 	printf("Waiting for client connection...\n");
 
@@ -490,7 +482,7 @@ void NetListener::MainLoop() {
 
 		if (0 == n32RetFlag) {
 			//返回epoll获取的消息数，并copy数据到event里面
-			wait_fds = epoll_wait(epoll_fd, evs, cur_fds, -1);
+			wait_fds = epoll_wait(pThis->epoll_fd, evs, cur_fds, -1);
 			if (wait_fds == -1) {
 				printf("Epoll wait error: %d\n", errno);
 				n32RetFlag = -1;
@@ -501,8 +493,8 @@ void NetListener::MainLoop() {
 			//遍历event
 			for (int i = 0; i < wait_fds; i++) {
 				//accept连接请求
-				if (evs[i].data.fd == hListenSocket && cur_fds < MAXEPOLL) {
-					conn_fds = accept(hListenSocket, (sockaddr*)&cliaddr, &len);
+				if (evs[i].data.fd == pThis->hListenSocket && cur_fds < MAXEPOLL) {
+					conn_fds = accept(pThis->hListenSocket, (sockaddr*)&cliaddr, &len);
 					if (INVALID_SOCKET == conn_fds) {
 						printf("Accept error: %d\n", errno);
 						n32RetFlag = -1;
@@ -513,7 +505,7 @@ void NetListener::MainLoop() {
 
 						ev.events = EPOLLIN | EPOLLET;
 						ev.data.fd = conn_fds;
-						int iRc = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_fds, &ev);
+						int iRc = epoll_ctl(pThis->epoll_fd, EPOLL_CTL_ADD, conn_fds, &ev);
 						if (iRc < 0) {
 							printf("Epoll control error: %d\n", errno);
 							n32RetFlag = -1;
@@ -531,26 +523,21 @@ void NetListener::MainLoop() {
 					if (nRead <= 0) {
 						printf("Recv error on session ID: %d\n", evs[i].data.fd);
 						close(evs[i].data.fd);
-						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
+						epoll_ctl(pThis->epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
 						--cur_fds;
 						continue;
 					}
-					printf("SID %d: %s\n", evs[i].data.fd, buf);
+					//printf("SID %d: %s\n", evs[i].data.fd, buf);
+					//获取网络消息发送保存到队列里面
+					CharString * charString = new CharString(buf);
+					charString->f = pThis->msgQueue.linkcount;
+					pThis->msgQueue.insertSort(charString);
+
 					//write(evs[i].data.fd, buf, nRead);
 				}
 			}
 		}
 	}
-}
-
-__NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
-	printf("This is IOCPThread\n");
-
-	INetListener * pThis = (INetListener*)pv;
-	if (NULL == pThis) {
-		__NANOC_THREAD_FUNC_END__(0);
-	}
-
 
 	printf("IOCPThread exited\n");
 	__NANOC_THREAD_FUNC_END__(0);

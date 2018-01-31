@@ -37,6 +37,8 @@ typedef void VOID;
 typedef INT32 SOCKET;
 typedef INT8 BOOL;
 
+typedef INT32 INT;
+
 #define INVALID_SOCKET  (SOCKET)(~0)
 #define SOCKET_ERROR            (-1)
 #define WAIT_TIMEOUT			-1

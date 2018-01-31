@@ -55,6 +55,9 @@ void NanoC::Init() {
 	if (0 == m_sMainThread) {
 		printf("Thread start error\n");
 	}
+
+	//开启网络监听，并将消息放在队列中
+	GetNetListener()->Init();
 }
 
 void NanoC::MainLoop() {
@@ -66,10 +69,20 @@ void NanoC::MainLoop() {
 __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 	printf("This is MainThread\n");
 
-	//TODO
-	//开启网络监听，并将消息放在队列中，从这里获取消息，将消息发送给模块
-	GetNetListener()->Init();
-	GetNetListener()->MainLoop();
+	//从这里获取网络监听消息
+	while (true) {
+		MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
+		if (msgQueue->linkcount > 0) {
+			CharString * charString = msgQueue->getPos(0);
+			if (NULL != charString) {
+				msgQueue->removeLink(charString);
+
+				printf("Get: %s\n", charString->str);
+
+				delete charString;
+			}
+		}
+	}
 
 	printf("MainThread exited\n");
 	__NANOC_THREAD_FUNC_END__(0);

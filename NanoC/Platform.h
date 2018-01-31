@@ -5,7 +5,7 @@
 #ifndef _PLATFORM_H_
 #define _PLATFORM_H_
 
-#define _NANOC_WINDOWS_
+//#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 
@@ -33,9 +33,6 @@
 #define __NANOC_THREAD_BEGIN__(hHandle, pFuncName, pParam) hHandle = (HANDLE)_beginthreadex(NULL, 0, &pFuncName, pParam, 0, 0)
 #define __NANOC_THREAD_WAIT__(hHandle) WaitForSingleObject(hHandle, 1000)
 #define __NANOC_THREAD_END__(hHandle) TerminateThread(hHandle, 0)
-
-#include <conio.h>
-#define getch _getch
 
 #else
 
@@ -92,5 +89,9 @@
 #include "NanoType.h"
 
 #include "NanoC.h"
+
+#include "MultiLinkList.h"
+
+#include "CharString.h"
 
 #endif

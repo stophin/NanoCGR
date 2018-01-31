@@ -8,8 +8,12 @@
 
 class INetListener  {
 public:
+	INetListener() : msgQueue(0) {
+	}
+	~INetListener() {
+	}
+public:
 	virtual void Init() = 0;
-	virtual void MainLoop() = 0;
 public:
 #ifdef _NANOC_WINDOWS_
 	HANDLE hCompletionPort; //listen completion port
@@ -24,4 +28,7 @@ public:
 	SOCKET hListenSocket; //listen socket port
 	SOCKET hSessionSocket;
 #endif
+
+public:
+	MultiLinkList<CharString> msgQueue;
 };

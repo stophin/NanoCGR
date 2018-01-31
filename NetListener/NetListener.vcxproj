@@ -81,10 +81,12 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\NanoC\CharString.cpp" />
     <ClCompile Include="NetListener.cpp" />
     <ClCompile Include="NetSession.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\NanoC\CharString.h" />
     <ClInclude Include="INetListener.h" />
     <ClInclude Include="NetListener.h" />
     <ClInclude Include="Platform.h" />
