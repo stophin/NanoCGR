@@ -89,7 +89,7 @@ void NetListener::Init() {
 		// Associate SOCKET with IOCP  
 		if (NULL == CreateIoCompletionPort((HANDLE)this->hListenSocket, this->hCompletionPort, NULL, 0))
 		{
-			cout << "CreateIoCompletionPort failed with error code: " << WSAGetLastError() << endl;
+			printf("CreateIoCompletionPort failed with error code: %d\n ", WSAGetLastError());
 			if (INVALID_SOCKET != this->hListenSocket)
 			{
 				closesocket(this->hListenSocket);
