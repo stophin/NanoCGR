@@ -66,6 +66,7 @@ void NetListener::Init() {
 		//bind listen socket with io completion port
 		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
 		//start io thread
+		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -234,7 +235,6 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	DWORD Flags = 0;
 	BOOL bRet = false;
 
-	static HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
 	while (true) {
 		n32RetFlag = 0;
 		bRet = GetQueuedCompletionStatus(pThis->hCompletionPort, &BytesTransferred, (PULONG_PTR)&PerHandleData, (LPOVERLAPPED*)&IpOverlapped, INFINITE);
@@ -323,13 +323,15 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			default://data
 			{
 						// 开始数据处理，接收来自客户端的数据
-						WaitForSingleObject(hMutex, INFINITE);
+						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 						//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
 						//获取网络消息发送保存到队列里面
 						CharString * charString = new CharString(PerIoData->databuff.buf);
-						ReleaseMutex(hMutex);
-						charString->f = pThis->msgQueue.linkcount;
-						pThis->msgQueue.insertSort(charString);
+						if (charString != NULL) {
+							charString->f = pThis->msgQueue.linkcount;
+							pThis->msgQueue.insertSort(charString);
+						}
+						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
 						// 为下一个重叠调用建立单I/O操作数据
 						ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
@@ -366,6 +368,7 @@ void NetListener::Init() {
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
 		//start io thread
+		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -527,11 +530,15 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						--cur_fds;
 						continue;
 					}
-					//printf("SID %d: %s\n", evs[i].data.fd, buf);
+					__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+					printf("SID %d(%d): %s\n", evs[i].data.fd, pThis->msgQueue.linkcount, buf);
 					//获取网络消息发送保存到队列里面
 					CharString * charString = new CharString(buf);
-					charString->f = pThis->msgQueue.linkcount;
-					pThis->msgQueue.insertSort(charString);
+					if (charString != NULL) {
+						charString->f = pThis->msgQueue.linkcount;
+						pThis->msgQueue.insertSort(charString);
+					}
+					__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
 					//write(evs[i].data.fd, buf, nRead);
 				}

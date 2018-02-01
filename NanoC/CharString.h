@@ -12,12 +12,12 @@ public:
 	CharString(const char * str);
 	~CharString();
 
-	char * str;
+	char str[1025];
 	int len;
 
 	int f;
 	int uniqueID;
-#define CharString_Max 1
+#define CharString_Max 3
 	void initialize() {
 		for (int i = 0; i < CharString_Max; i++)
 		{
@@ -27,6 +27,9 @@ public:
 	}
 	CharString * prev[CharString_Max];
 	CharString * next[CharString_Max];
+	void * operator new(size_t size){
+		return malloc(size);
+	}
 	void operator delete(void * _ptr){
 		if (_ptr == NULL)
 		{
@@ -39,7 +42,7 @@ public:
 				return;
 			}
 		}
-		delete(_ptr);
+		free(_ptr);
 	}
 }CharString, *PCharString;
 

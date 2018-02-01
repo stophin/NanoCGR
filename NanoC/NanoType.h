@@ -4,7 +4,7 @@
 
 #pragma once
 
-//#define _NANOC_WINDOWS_
+#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 
@@ -21,6 +21,9 @@ typedef INT64 SIZE_INT;
 
 typedef INT32 INT;
 typedef void VOID;
+
+typedef void *HANDLE;
+typedef HANDLE HANDLE_MUTEX;
 
 #else
 
@@ -43,6 +46,7 @@ typedef void VOID;
 #include <termios.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <semaphore.h>
 
 typedef signed char         INT8, *PINT8;
 typedef signed short        INT16, *PINT16;
@@ -55,6 +59,8 @@ typedef unsigned long		 UINT64, *PUINT64;
 
 typedef void * HINSTANCE;
 typedef pthread_t HANDLE;
+//typedef sem_t HANDLE_MUTEX;
+typedef pthread_mutex_t HANDLE_MUTEX;
 
 typedef char CHAR;
 typedef void VOID;

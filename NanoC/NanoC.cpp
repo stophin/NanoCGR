@@ -51,17 +51,23 @@ void NanoC::Init() {
 		iModel->Init();
 	}
 
+	//开启网络监听，并将消息放在队列中
+	GetNetListener()->Init();
+	//获取线程锁
+	this->hNetMutex = GetNetListener()->hMutex;
+	__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+
+	//开启线程
 	__NANOC_THREAD_BEGIN__(m_sMainThread, NanoC::MainThread, this);
 	if (0 == m_sMainThread) {
 		printf("Thread start error\n");
 	}
-
-	//开启网络监听，并将消息放在队列中
-	GetNetListener()->Init();
 }
 
 void NanoC::MainLoop() {
-	if (NULL != iModel) {
+	if (NULL != iModel){
+		//获取线程锁
+		iModel->hMutex = this->hMutex;
 		iModel->MainLoop();
 	}
 }
@@ -74,18 +80,26 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 		__NANOC_THREAD_FUNC_END__(0);
 	}
 
+	CharString * charString;
 	//从这里获取网络监听消息
 	while (true) {
+		charString = NULL;
+		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
 		MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
 		if (msgQueue->linkcount > 0) {
-			CharString * charString = msgQueue->getPos(0);
+			charString = msgQueue->getPos(0);
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
-
-				//printf("Get: %s\n", charString->str);
-				pThis->msgQueue.insertLink(charString);
 			}
 		}
+		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
+
+		__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+		if (charString != NULL) {
+			//printf("Get: %s\n", charString->str);
+			pThis->msgQueue.insertSort(charString);
+		}
+		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 	}
 
 	printf("MainThread exited\n");

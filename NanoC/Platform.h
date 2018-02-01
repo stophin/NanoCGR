@@ -34,6 +34,9 @@
 #define __NANOC_THREAD_WAIT__(hHandle) WaitForSingleObject(hHandle, 1000)
 #define __NANOC_THREAD_END__(hHandle) TerminateThread(hHandle, 0)
 
+#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) obj->hMutex = CreateMutex(NULL, FALSE, NULL)
+#define __NANOC_THREAD_MUTEX_LOCK__(hMutex) WaitForSingleObject(hMutex, INFINITE)
+#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) ReleaseMutex(hMutex);
 #else
 
 
@@ -64,6 +67,14 @@
 #define __NANOC_THREAD_BEGIN__(hHandle, pFuncName, pParam) pthread_create(&hHandle, NULL, pFuncName, pParam)
 #define __NANOC_THREAD_WAIT__(hHandle) pthread_cancel(hHandle)
 #define __NANOC_THREAD_END__(hHandle) pthread_kill(hHandle, 0)
+
+#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) pthread_mutex_init(&obj->hMutex, NULL)
+#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  pthread_mutex_lock(&hMutex)
+#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) pthread_mutex_unlock(&hMutex)
+
+//#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) sem_init(&obj->hMutex, 0, 0);sem_post(&obj->hMutex)
+//#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  sem_wait(&hMutex)
+//#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) sem_post(&hMutex)
 
 #endif
 
