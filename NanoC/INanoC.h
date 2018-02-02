@@ -12,6 +12,7 @@ public:
 	virtual void MainLoop() = 0;
 	virtual void Sleep(INT32 n32MilliSecond) = 0;
 	HANDLE_MUTEX hMutex;
+	INT isRunning;
 };
 
 class INanoC {
@@ -28,7 +29,10 @@ public:
 	virtual void MainLoop() = 0;
 
 public:
+	INanoCModel * iModel;
+public:
 	HANDLE_MUTEX hNetMutex;
 	HANDLE_MUTEX hMutex;
 	MultiLinkList<CharString> msgQueue;
+	CharStringPool * msgPool;
 };

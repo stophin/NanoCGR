@@ -53,10 +53,14 @@ void NanoC::Init() {
 
 	//开启网络监听，并将消息放在队列中
 	GetNetListener()->Init();
-	//获取线程锁
+	//获取Net线程锁
 	this->hNetMutex = GetNetListener()->hMutex;
-	__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+	//获取Net消息池
+	this->msgPool = GetNetListener()->msgPool;
 
+	//创建线程锁
+	__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+	printf("%p == %p\n", this->msgPool, GetPool());
 	//开启线程
 	__NANOC_THREAD_BEGIN__(m_sMainThread, NanoC::MainThread, this);
 	if (0 == m_sMainThread) {
@@ -68,6 +72,7 @@ void NanoC::MainLoop() {
 	if (NULL != iModel){
 		//获取线程锁
 		iModel->hMutex = this->hMutex;
+		iModel->isRunning = 1;
 		iModel->MainLoop();
 	}
 }

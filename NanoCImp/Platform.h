@@ -18,6 +18,9 @@
 
 #endif
 
+#include "../NanoC/CharString.h"
+#include "../NanoC/CharString.cpp"
+
 #include "INanoCImp.h"
 
 #include "NanoCImp.h"

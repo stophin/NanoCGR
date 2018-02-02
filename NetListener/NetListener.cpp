@@ -66,7 +66,11 @@ void NetListener::Init() {
 		//bind listen socket with io completion port
 		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
 		//start io thread
+		//创建消息池
+		this->msgPool = (CharStringPool*)GetPool();
+		//创建线程锁
 		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+		//创建线程
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -326,10 +330,14 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 						//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
 						//获取网络消息发送保存到队列里面
-						CharString * charString = new CharString(PerIoData->databuff.buf);
+						CharString * charString = pThis->msgPool->get();
 						if (charString != NULL) {
+							charString->set(PerIoData->databuff.buf);
 							charString->f = pThis->msgQueue.linkcount;
 							pThis->msgQueue.insertSort(charString);
+						}
+						if (pThis->msgPool->used > 10) {
+							pThis->msgPool->gc();
 						}
 						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
@@ -368,7 +376,11 @@ void NetListener::Init() {
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
 		//start io thread
+		//创建消息池
+		this->msgPool = (CharStringPool*)GetPool();
+		//创建线程锁
 		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+		//创建线程
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -531,12 +543,16 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						continue;
 					}
 					__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-					printf("SID %d(%d): %s\n", evs[i].data.fd, pThis->msgQueue.linkcount, buf);
+					//printf("SID %d(%d): %s\n", evs[i].data.fd, pThis->msgQueue.linkcount, buf);
 					//获取网络消息发送保存到队列里面
-					CharString * charString = new CharString(buf);
+					CharString * charString = pThis->msgPool->get();
 					if (charString != NULL) {
+						charString->set(buf);
 						charString->f = pThis->msgQueue.linkcount;
 						pThis->msgQueue.insertSort(charString);
+					}
+					if (pThis->msgPool->used > 10) {
+						pThis->msgPool->gc();
 					}
 					__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 

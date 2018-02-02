@@ -32,4 +32,5 @@ public:
 public:
 	HANDLE_MUTEX hMutex;
 	MultiLinkList<CharString> msgQueue;
+	CharStringPool * msgPool;
 };

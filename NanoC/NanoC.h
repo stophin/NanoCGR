@@ -21,8 +21,6 @@ public:
 	__NANOC_THREAD_FUNC_DECLARE(m_sMainThread, MainThread);
 public:
 	HINSTANCE hInstance;
-	INanoCModel * iModel;
 };
-
 
 extern "C" __NANOC_EXPORT__ INanoC * GetNanoC();
