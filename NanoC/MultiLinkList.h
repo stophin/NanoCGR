@@ -46,7 +46,7 @@ MultiLinkList<T>::~MultiLinkList()
 				break;
 			}
 
-			delete temp;
+			//delete temp;
 
 			temp = this->link;
 		} while (temp);

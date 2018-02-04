@@ -4,7 +4,7 @@
 
 #pragma once
 
-#define _NANOC_WINDOWS_
+//#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 
@@ -88,10 +88,6 @@ typedef unsigned short      UINT16, *PUINT16;
 typedef unsigned int        UINT32, *PUINT32;
 typedef unsigned long		 UINT64, *PUINT64;
 
-typedef void * HINSTANCE;
-typedef pthread_t HANDLE;
-//typedef sem_t HANDLE_MUTEX;
-typedef pthread_mutex_t HANDLE_MUTEX;
 
 typedef char CHAR;
 typedef void VOID;
@@ -134,6 +130,11 @@ if (un32NameLen <1000)\
 #define __NANOC_THREAD_BEGIN__(hHandle, pFuncName, pParam) pthread_create(&hHandle, NULL, pFuncName, pParam)
 #define __NANOC_THREAD_WAIT__(hHandle) pthread_cancel(hHandle)
 #define __NANOC_THREAD_END__(hHandle) pthread_kill(hHandle, 0)
+
+typedef void * HINSTANCE;
+typedef pthread_t HANDLE;
+//typedef sem_t HANDLE_MUTEX;
+typedef pthread_mutex_t HANDLE_MUTEX;
 
 #define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) pthread_mutex_init(&obj->hMutex, NULL)
 #define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  pthread_mutex_lock(&hMutex)

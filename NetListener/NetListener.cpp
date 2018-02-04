@@ -334,9 +334,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						if (charString != NULL) {
 							charString->set(PerIoData->databuff.buf);
 							charString->f = pThis->msgQueue.linkcount;
-							pThis->msgQueue.insertSort(charString);
+							pThis->msgQueue.insertLink(charString);
 						}
-						if (pThis->msgPool->used > 10) {
+						if (pThis->msgPool->used >= POOL_MAX) {
 							pThis->msgPool->gc();
 						}
 						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
@@ -352,16 +352,25 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		}
 	}
 
+	pThis->CleanUp();
 	printf("IOCPThread exited\n");
 	__NANOC_THREAD_FUNC_END__(0);
 }
 #else
 void NetListener::CleanUp() {
+	if (NULL != m_phIOThread) {
+		if (WAIT_TIMEOUT == __NANOC_THREAD_WAIT__(m_phIOThread)) {
+			__NANOC_THREAD_END__(m_phIOThread);
+		}
+		m_phIOThread = NULL;
+	}
 	if (INVALID_SOCKET != epoll_fd) {
+		printf("Epoll closed\n");
 		close(epoll_fd);
 		epoll_fd = INVALID_SOCKET;
 	}
 	if (INVALID_SOCKET != hListenSocket) {
+		printf("Socket closed\n");
 		close(hListenSocket);
 		hListenSocket = INVALID_SOCKET;
 	}
@@ -474,7 +483,7 @@ void NetListener::Init() {
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
 
-	INetListener * pThis = (INetListener*)pv;
+	NetListener * pThis = (NetListener*)pv;
 	if (NULL == pThis) {
 		__NANOC_THREAD_FUNC_END__(0);
 	}
@@ -549,9 +558,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 					if (charString != NULL) {
 						charString->set(buf);
 						charString->f = pThis->msgQueue.linkcount;
-						pThis->msgQueue.insertSort(charString);
+						pThis->msgQueue.insertLink(charString);
 					}
-					if (pThis->msgPool->used > 10) {
+					if (pThis->msgPool->used >= POOL_MAX) {
 						pThis->msgPool->gc();
 					}
 					__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
@@ -562,6 +571,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		}
 	}
 
+	pThis->CleanUp();
 	printf("IOCPThread exited\n");
 	__NANOC_THREAD_FUNC_END__(0);
 }

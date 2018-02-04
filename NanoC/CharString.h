@@ -112,7 +112,7 @@ public:
 		used--;
 		_ptr->used = 0;
 		memset(_ptr, 0, sizeof(CharString));
-		printf("CharString released\n");
+		//printf("CharString released\n");
 	}
 
 	int gc(CharString * _ptr) {
@@ -152,7 +152,7 @@ public:
 						this->map[i] &= ~(0x01 << j);
 						used++;
 						this->pool[index].used = 1;
-						printf("CharString got\n");
+						//printf("CharString got\n");
 						return &this->pool[index];
 					}
 				}
@@ -166,14 +166,14 @@ public:
 		if (o == NULL) {
 			return;
 		}
-		printf("Trying to releases-->");
+		//printf("Trying to releases-->");
 		for (index = 0; index < this->size; index++) {
 			if (&this->pool[index] == o) {
 				this->gc(index);
 				return;
 			}
 		}
-		printf("Fail!\n");
+		//printf("Fail!\n");
 		o = NULL;
 		return;
 	}

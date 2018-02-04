@@ -12,6 +12,7 @@ public:
 	virtual void MainLoop() = 0;
 	virtual void Sleep(INT32 n32MilliSecond) = 0;
 	HANDLE_MUTEX hMutex;
+	HANDLE_MUTEX hNetMutex;
 	INT isRunning;
 };
 

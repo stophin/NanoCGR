@@ -72,6 +72,7 @@ void NanoC::MainLoop() {
 	if (NULL != iModel){
 		//获取线程锁
 		iModel->hMutex = this->hMutex;
+		iModel->hNetMutex = this->hNetMutex;
 		iModel->isRunning = 1;
 		iModel->MainLoop();
 	}
@@ -87,24 +88,22 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 
 	CharString * charString;
 	//从这里获取网络监听消息
+	MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
 	while (true) {
 		charString = NULL;
 		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
-		MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
 		if (msgQueue->linkcount > 0) {
 			charString = msgQueue->getPos(0);
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
+
+				//printf("NanoC Get(%d/%d): %s\n", msgQueue->linkcount, pThis->msgPool->used, charString->str);
+
+				pThis->msgQueue.insertLink(charString);
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
 
-		__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-		if (charString != NULL) {
-			//printf("Get: %s\n", charString->str);
-			pThis->msgQueue.insertSort(charString);
-		}
-		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 	}
 
 	printf("MainThread exited\n");

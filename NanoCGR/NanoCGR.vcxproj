@@ -81,11 +81,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\NanoC\CharString.cpp" />
     <ClCompile Include="NanoCGR.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\NanoC\CharString.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

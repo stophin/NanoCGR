@@ -15,13 +15,13 @@ d: ${objd}
 s: ${objs}
 
 %.o: %.cpp
-	g++ -m64 -fPIC  $< -c -o $@
+	g++ -g -rdynamic  -m64 -fPIC  $< -c -o $@
 	
 ${objd}: ${obj}
-	g++ -m64 -o ${OutDir}/${objd} ${obj} -L${OutDir}/ ${liba} -Wl,--rpath=${OutDir}/ -ldl -lpthread
+	g++ -g -rdynamic  -m64 -o ${OutDir}/${objd} ${obj} -L${OutDir}/ ${liba} -Wl,--rpath=${OutDir}/ -ldl -lpthread
 	
 ${objs}: ${obj}
-	g++ -m64 -o ${OutDir}/${objs}  ${obj} ${libs}  -Wl,--rpath=${OutDir}/ -ldl -lpthread
+	g++ -g -rdynamic  -m64 -o ${OutDir}/${objs}  ${obj} ${libs}  -Wl,--rpath=${OutDir}/ -ldl -lpthread
 	
 clean:
 	rm ${obj}

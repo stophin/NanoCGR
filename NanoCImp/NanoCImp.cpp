@@ -22,7 +22,7 @@ void NanoCImp::Sleep(INT32 n32MilliSecond) {
 	usleep(n32MilliSecond * 1000);
 #endif
 }
-extern CharStringPool * pool;
+
 void NanoCImp::MainLoop() {
 	printf("This is NanoCImp MainLoop\n");
 	NanoCImp * pThis = (NanoCImp*)this;
@@ -30,26 +30,28 @@ void NanoCImp::MainLoop() {
 		return;
 	}
 
+	printf("%p == %p\n", GetNanoC()->msgPool, GetPool());
+
 	int count = 0;
-	MultiLinkList<CharString> * msgQueue;
+	MultiLinkList<CharString> * msgQueue = &GetNanoC()->msgQueue;
 	while (true) {
 		//结束主线程，其余子线程也结束
 		if (pThis->isRunning == 0) {
 			break;
 		}
-		__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-		msgQueue = &GetNanoC()->msgQueue;
+		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
 		if (msgQueue->linkcount > 0) {
 			CharString * charString = msgQueue->getPos(0);
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				printf("NanoCImp Get(%d/%d): %s\n", msgQueue->linkcount, GetNanoC()->msgPool->used, charString->str);
+				//printf("NanoCImp Get(%d/%d): %s\n", msgQueue->linkcount, GetNanoC()->msgPool->used, charString->str);
+				printf("NanoCImp Get(%d/%d)\n", msgQueue->linkcount, GetNanoC()->msgPool->used);
 
 				//GetNanoC()->msgPool->back(charString);
 			}
 		}
-		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
 	}
 
 	printf("This is NanoCImp MainLoop End\n");

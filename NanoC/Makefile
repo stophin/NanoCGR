@@ -14,7 +14,7 @@ d: ${libd}
 s: ${libs}
 
 %.o: %.cpp
-	g++ -m64 -fPIC  $< -c -o $@
+	g++ -g -rdynamic -m64 -fPIC  $< -c -o $@
 	
 ${libd}: ${obj}
 	g++ -m64 -fPIC -shared -o ${OutDir}/${libd} ${obj} -L${OutDir}/ ${liba}
