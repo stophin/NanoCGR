@@ -55,12 +55,13 @@ void NanoC::Init() {
 	GetNetListener()->Init();
 	//获取Net线程锁
 	this->hNetMutex = GetNetListener()->hMutex;
-	//获取Net消息池
-	this->msgPool = GetNetListener()->msgPool;
 
+	//获取消息池
+	static CharStringPool pool;
+	this->msgPool = &pool;
 	//创建线程锁
 	__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
-	printf("%p == %p\n", this->msgPool, GetPool());
+	printf("%p == %p\n", GetNetListener()->msgPool, this->msgPool);
 	//开启线程
 	__NANOC_THREAD_BEGIN__(m_sMainThread, NanoC::MainThread, this);
 	if (0 == m_sMainThread) {
@@ -85,12 +86,14 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 	if (NULL == pThis) {
 		__NANOC_THREAD_FUNC_END__(0);
 	}
+	printf("NetListener msg pool: %p\n", GetNetListener()->msgPool);
 
-	CharString * charString;
+	CharString * charString, *_charString;
 	//从这里获取网络监听消息
 	MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
 	while (true) {
 		charString = NULL;
+		_charString = NULL;
 		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
 		if (msgQueue->linkcount > 0) {
 			charString = msgQueue->getPos(0);
@@ -99,11 +102,21 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 
 				//printf("NanoC Get(%d/%d): %s\n", msgQueue->linkcount, pThis->msgPool->used, charString->str);
 
-				pThis->msgQueue.insertLink(charString);
+				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+				if (pThis->msgPool->used >= POOL_MAX) {
+					pThis->msgPool->gc();
+				}
+				_charString = pThis->msgPool->get();
+				if (_charString != NULL) {
+					_charString->set(charString->str);
+					_charString->f = charString->f;
+					pThis->msgQueue.insertLink(_charString);
+				}
+				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
-
 	}
 
 	printf("MainThread exited\n");

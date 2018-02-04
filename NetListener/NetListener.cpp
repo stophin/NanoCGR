@@ -67,7 +67,8 @@ void NetListener::Init() {
 		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
 		//start io thread
 		//创建消息池
-		this->msgPool = (CharStringPool*)GetPool();
+		static CharStringPool pool;
+		this->msgPool = &pool;
 		//创建线程锁
 		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
 		//创建线程
@@ -328,17 +329,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			{
 						// 开始数据处理，接收来自客户端的数据
 						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-						//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
-						//获取网络消息发送保存到队列里面
-						CharString * charString = pThis->msgPool->get();
-						if (charString != NULL) {
-							charString->set(PerIoData->databuff.buf);
-							charString->f = pThis->msgQueue.linkcount;
-							pThis->msgQueue.insertLink(charString);
-						}
-						if (pThis->msgPool->used >= POOL_MAX) {
-							pThis->msgPool->gc();
-						}
+						pThis->addMsgQueue(PerIoData->databuff.buf);
 						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
 						// 为下一个重叠调用建立单I/O操作数据
@@ -552,17 +543,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						continue;
 					}
 					__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-					//printf("SID %d(%d): %s\n", evs[i].data.fd, pThis->msgQueue.linkcount, buf);
-					//获取网络消息发送保存到队列里面
-					CharString * charString = pThis->msgPool->get();
-					if (charString != NULL) {
-						charString->set(buf);
-						charString->f = pThis->msgQueue.linkcount;
-						pThis->msgQueue.insertLink(charString);
-					}
-					if (pThis->msgPool->used >= POOL_MAX) {
-						pThis->msgPool->gc();
-					}
+					pThis->addMsgQueue(buf);
 					__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
 					//write(evs[i].data.fd, buf, nRead);
@@ -578,6 +559,22 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 
 #endif
+
+void NetListener::addMsgQueue(const char * buf) {
+
+	//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
+	//获取网络消息发送保存到队列里面
+	if (this->msgPool->used >= POOL_MAX) {
+		this->msgPool->gc();
+	}
+	CharString * charString = this->msgPool->get();
+	if (charString != NULL) {
+		charString->set(buf);
+		charString->f = this->msgQueue.linkcount;
+		this->msgQueue.insertLink(charString);
+	}
+}
+
 
 NetListener g_NetListener;
 

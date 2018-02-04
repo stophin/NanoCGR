@@ -24,6 +24,8 @@ public:
 	INT32 MakeFreeIOCompletionPort(NetSession* session);
 #else
 #endif
+public:
+	virtual void addMsgQueue(const char * buf);
 };
 
 __NANOC_EXPORT__ INetListener * GetNetListener();

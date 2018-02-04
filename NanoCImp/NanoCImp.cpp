@@ -29,8 +29,7 @@ void NanoCImp::MainLoop() {
 	if (NULL == pThis) {
 		return;
 	}
-
-	printf("%p == %p\n", GetNanoC()->msgPool, GetPool());
+	printf("NanoC msg pool: %p\n", GetNanoC()->msgPool);
 
 	int count = 0;
 	MultiLinkList<CharString> * msgQueue = &GetNanoC()->msgQueue;
@@ -39,19 +38,17 @@ void NanoCImp::MainLoop() {
 		if (pThis->isRunning == 0) {
 			break;
 		}
-		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
+		__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 		if (msgQueue->linkcount > 0) {
 			CharString * charString = msgQueue->getPos(0);
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				//printf("NanoCImp Get(%d/%d): %s\n", msgQueue->linkcount, GetNanoC()->msgPool->used, charString->str);
-				printf("NanoCImp Get(%d/%d)\n", msgQueue->linkcount, GetNanoC()->msgPool->used);
+				printf("NanoCImp Get(%d/%d): %s\n", msgQueue->linkcount, GetNanoC()->msgPool->used, charString->str);
 
-				//GetNanoC()->msgPool->back(charString);
 			}
 		}
-		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
+		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 	}
 
 	printf("This is NanoCImp MainLoop End\n");
