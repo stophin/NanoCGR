@@ -4,7 +4,7 @@
 
 #pragma once
 
-#define _NANOC_WINDOWS_
+//#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 
@@ -133,15 +133,15 @@ if (un32NameLen <1000)\
 
 typedef void * HINSTANCE;
 typedef pthread_t HANDLE;
-//typedef pthread_mutex_t HANDLE_MUTEX;
+typedef pthread_mutex_t HANDLE_MUTEX;
 
-//#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) pthread_mutex_init(&obj->hMutex, NULL)
-//#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  pthread_mutex_lock(&hMutex)
-//#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) pthread_mutex_unlock(&hMutex)
+#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) pthread_mutex_init(&obj->hMutex, NULL)
+#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  pthread_mutex_lock(&hMutex)
+#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) pthread_mutex_unlock(&hMutex)
 
-typedef sem_t HANDLE_MUTEX;
-#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) sem_init(&obj->hMutex, 0, 0);sem_post(&obj->hMutex)
-#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  sem_wait(&hMutex)
-#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) sem_post(&hMutex)
+//typedef sem_t HANDLE_MUTEX;
+//#define __NANOC_THREAD_MUTEX_INIT__(hMutex, obj) sem_init(&obj->hMutex, 0, 0);sem_post(&obj->hMutex)
+//#define __NANOC_THREAD_MUTEX_LOCK__(hMutex)  sem_wait(&hMutex)
+//#define __NANOC_THREAD_MUTEX_UNLOCK__(hMutex) sem_post(&hMutex)
 
 #endif

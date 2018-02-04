@@ -29,10 +29,7 @@ public:
 			this->str[0] = 0;
 		}
 		else{
-			for (; str[len] != 0; len++);
-			if (len > 1024) {
-				len = 1024;
-			}
+			for (; str[len] != 0 && len < 1024; len++);
 			for (int i = 0; i < len; i++) {
 				this->str[i] = str[i];
 			}
