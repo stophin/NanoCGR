@@ -4,7 +4,6 @@
 #include "NetListener.h"
 
 
-#ifdef _NANOC_WINDOWS_
 NetSession::NetSession(){
 }
 
@@ -27,8 +26,13 @@ NetSessionManager::~NetSessionManager() {
 		this->netSession = NULL;
 	}
 }
+INT32 NetSessionManager::getSize() {
+	return this->n32Size;
+}
 
-NetSession * NetSessionManager::GetFreeSession() {
+#ifdef _NANOC_WINDOWS_
+
+NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 	for (int i = 0; i < this->n32Size; i++) {
 		if (this->netSession[i].bIfUse) {
 			continue;
@@ -40,12 +44,26 @@ NetSession * NetSessionManager::GetFreeSession() {
 	return NULL;
 }
 
-INT32 NetSessionManager::getSize() {
-	return this->n32Size;
-}
 #else
 
 #define MAXEPOLL 1000
 #define MAXLINE 1024
+
+NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
+	for (int i = 0; i < this->n32Size; i++) {
+		if (this->netSession[i].bIfUse) {
+			continue;
+		}
+		else if (0 != socket) {
+			if (socket == this->netSession[i].socket) {
+				return &this->netSession[i];
+			}
+		}
+		this->netSession[i].bIfUse = true;
+		this->netSession[i].socket = socket;
+		return &this->netSession[i];
+	}
+	return NULL;
+}
 
 #endif

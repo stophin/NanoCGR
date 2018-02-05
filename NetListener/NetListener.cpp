@@ -329,7 +329,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			{
 						// 开始数据处理，接收来自客户端的数据
 						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-						pThis->addMsgQueue(PerIoData->databuff.buf);
+						pThis->addMsgQueue((NetSession*)PerIoData->netSession, PerIoData->databuff.buf);
 						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 
 						// 为下一个重叠调用建立单I/O操作数据
@@ -529,6 +529,12 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 					if (0 == n32RetFlag) {
 						++cur_fds;
+
+						NetSession * session = pThis->netSession.GetFreeSession();
+						if (NULL != session) {
+							session->socket = conn_fds;
+						}
+
 						continue;
 					}
 				}
@@ -542,9 +548,13 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						--cur_fds;
 						continue;
 					}
-					__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-					pThis->addMsgQueue(buf);
-					__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+
+					NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
+					if (NULL != session) {
+						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+						pThis->addMsgQueue(session, buf);
+						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+					}
 
 					//write(evs[i].data.fd, buf, nRead);
 				}
@@ -560,7 +570,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 #endif
 
-void NetListener::addMsgQueue(const char * buf) {
+void NetListener::addMsgQueue(INetSession * session, const char * buf) {
 
 	//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
 	//获取网络消息发送保存到队列里面
@@ -570,9 +580,31 @@ void NetListener::addMsgQueue(const char * buf) {
 	CharString * charString = this->msgPool->get();
 	if (charString != NULL) {
 		charString->set(buf);
+		charString->session = session;
 		charString->f = this->msgQueue.linkcount;
 		this->msgQueue.insertLink(charString);
 	}
+}
+
+int NetListener::sendMessage(INetSession * session, const char * buf) {
+	if (session == NULL) {
+		return -1;
+	}
+	NetSession * _session = (NetSession*)session;
+	if (_session->socket == INVALID_SOCKET) {
+		return -1;
+	}
+#ifdef _NANOC_WINDOWS_
+	WSABUF  wasBuf;
+	wasBuf.buf = (CHAR*)buf;
+	wasBuf.len = (ULONG)strlen(buf);
+	DWORD dwBytes = -1;
+
+	return send(_session->handleData.socket, buf, strlen(buf), 0);
+	//return WSASend(_session->handleData.socket, &wasBuf, 1, &dwBytes, 0, &_session->operationData.overlapped, NULL); 
+#else
+	return write(_session->socket, buf, strlen(buf));
+#endif
 }
 
 

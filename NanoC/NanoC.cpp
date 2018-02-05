@@ -109,6 +109,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 				_charString = pThis->msgPool->get();
 				if (_charString != NULL) {
 					_charString->set(charString->str);
+					_charString->session = charString->session;
 					_charString->f = charString->f;
 					pThis->msgQueue.insertLink(_charString);
 				}
@@ -125,6 +126,11 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 
 void NanoC::SetModelInstance(INanoCModel * iModel) {
 	this->iModel = iModel;
+}
+
+
+int NanoC::sendMessage(INetSession * session, const char * buf) {
+	return GetNetListener()->sendMessage(session, buf);
 }
 
 NanoC g_NanoCInstance;

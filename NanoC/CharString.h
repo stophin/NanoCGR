@@ -5,6 +5,7 @@
 
 #include "../NanoC/NanoType.h"
 
+class INetSession;
 typedef class CharString
 {
 public:
@@ -23,22 +24,65 @@ public:
 	{
 	}
 
+	/////////////////////////////////////
+	int pos;
+	int len;
+	void Reflush() {
+		this->pos = 0;
+		this->len = this->getInt();
+		if (this->len > 1024) {
+			this->len = 1024;
+		}
+		this->str[this->len] = 0;
+	}
+	int getInt() {
+		if (this->pos > this->len) {
+			return 0;
+		}
+		int ret = *(int*)(this->str + this->pos);
+		this->pos += sizeof(int);
+		return ret;
+	}
+	const char * getStr() {
+		if (this->pos > this->len) {
+			return NULL;
+		}
+		int len = getInt();
+		if (this->len > 1024) {
+			this->len = 1024;
+		}
+		if (this->pos + len > this->len) {
+			len = this->len - this->pos;
+		}
+		char * str = (this->str + this->pos);
+		str[len] = 0;
+		this->pos += len;
+		return str;
+	}
+	/////////////////////////////////////
+
 	void set(const char * str) {
 		if (NULL == str) {
 			len = 1;
 			this->str[0] = 0;
 		}
 		else{
-			for (; str[len] != 0 && len < 1024; len++);
+			for (len = 0; str[len] != 0 && len < 1024; len++);
+			int _len = *(int*)(str);
+			if (_len <= 1024 && _len > len) {
+				len = _len;
+			}
 			for (int i = 0; i < len; i++) {
 				this->str[i] = str[i];
 			}
 			this->str[len] = 0;
 		}
+		this->Reflush();
 	}
 
+	INetSession * session;
+
 	char str[1025];
-	int len;
 
 	int used;
 	int f;

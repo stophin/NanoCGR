@@ -30,8 +30,10 @@ public:
 #endif
 
 public:
-	virtual void addMsgQueue(const char * buf) = 0;
 	HANDLE_MUTEX hMutex;
 	MultiLinkList<CharString> msgQueue;
 	CharStringPool * msgPool;
+
+	virtual void addMsgQueue(INetSession * session, const char * buf) = 0;
+	virtual int sendMessage(INetSession * session, const char * buf) = 0;
 };

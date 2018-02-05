@@ -36,4 +36,6 @@ public:
 	HANDLE_MUTEX hMutex;
 	MultiLinkList<CharString> msgQueue;
 	CharStringPool * msgPool;
+
+	virtual int sendMessage(INetSession * session, const char * buf) = 0;
 };

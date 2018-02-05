@@ -45,26 +45,44 @@ public:
 	NetSession();
 	~NetSession();
 
-	PER_HANDLE_DATA handleData;;
+	union {
+		PER_HANDLE_DATA handleData;
+		SOCKET socket;
+	};
 	PER_IO_OPERATEION_DATA operationData;
 };
+
+#else
+class INetSession {
+public:
+	INetSession() : bIfUse(false) {
+	}
+	INT iSessionID;
+	BOOL bIfUse;
+};
+
+class NetSession : public INetSession {
+public:
+	NetSession();
+	~NetSession();
+
+	SOCKET socket;
+};
+
+#define MAXEPOLL 1000
+#define MAXLINE 1024
+
+#endif
 
 class NetSessionManager {
 public:
 	NetSessionManager();
 	~NetSessionManager();
 
-	NetSession * GetFreeSession();
+	NetSession * GetFreeSession(SOCKET socket = 0);
 
 	INT32 getSize();
 private:
 	INT32 n32Size;
 	NetSession * netSession;
 };
-
-#else
-
-#define MAXEPOLL 1000
-#define MAXLINE 1024
-
-#endif
