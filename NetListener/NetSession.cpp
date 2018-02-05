@@ -52,12 +52,12 @@ NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 	for (int i = 0; i < this->n32Size; i++) {
 		if (this->netSession[i].bIfUse) {
-			continue;
-		}
-		else if (0 != socket) {
-			if (socket == this->netSession[i].socket) {
-				return &this->netSession[i];
+			if (0 != socket) {
+				if (socket == this->netSession[i].socket) {
+					return &this->netSession[i];
+				}
 			}
+			continue;
 		}
 		this->netSession[i].bIfUse = true;
 		this->netSession[i].socket = socket;

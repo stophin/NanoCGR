@@ -572,7 +572,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 void NetListener::addMsgQueue(INetSession * session, const char * buf) {
 
-	//printf("SID %d:  %s\n", PerIoData->netSession->iSessionID, PerIoData->databuff.buf);
+	//printf("SID %d:  %s\n", session->iSessionID, buf);
 	//获取网络消息发送保存到队列里面
 	if (this->msgPool->used >= POOL_MAX) {
 		this->msgPool->gc();
