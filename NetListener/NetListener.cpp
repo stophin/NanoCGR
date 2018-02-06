@@ -5,6 +5,8 @@
 
 NetListener::NetListener() {
 	bIfInitialized = false;
+
+	this->isRunning = 1;
 }
 
 NetListener::~NetListener() {
@@ -493,6 +495,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	INT32 nRead;
 	char 	buf[MAXLINE];
 	while (true) {
+		if (pThis->isRunning == 0) {
+			break;
+		}
+
 		n32RetFlag = 0;
 
 		if (0 == n32RetFlag) {

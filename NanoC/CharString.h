@@ -43,20 +43,81 @@ public:
 		this->pos += sizeof(int);
 		return ret;
 	}
-	const char * getStr() {
+	const char * getStrUnicode() {
+		int len;
+		const char * str = this->getStr(&len);
+
+#ifdef _NANOC_WINDOWS_
+
+		//返回需要的buffer大小
+		int _len = WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, _str, 1024, "△", NULL);
+		if (_len > 0) {
+			//计算中非双字节字符的个数
+			int cc = 0;
+			for (int i = 0; i < len && i < _len; i++) {
+				if (_str[i] & 0x80) {
+					continue;
+				}
+				cc++;
+			}
+			_str[len - cc] = 0;
+		} else {
+			_str[0] = 0;
+			printf("Trans failed: %d\n", _len);
+		}
+		return _str;
+#else 
+		//Linux下wchar占4个字节，需要对2字节字符串进行扩充
+		for (int i = len * 2; i >= 0; i--){
+			if (i > 1024) {
+				continue;
+			}
+			this->_str[i] = 0;
+		}
+		for (int i = 0; i < len; i++) {
+			int ind = 0;
+			if (i % 2 == 0) {
+				ind = i * 2;
+			}
+			else {
+				ind = i * 2 - 1;
+			}
+			if (ind > 1024) {
+				continue;
+			}
+			this->_str[ind] = str[i];
+		}
+		char * dest = &this->_str[len * 3];
+
+		setlocale(LC_ALL, "");
+		int _len = wcstombs(dest, (wchar_t*)_str, 1024 - len * 3);
+		if (_len > 0) {
+		}
+		else {
+			//dest[0] = 0;
+			printf("Trans failed: %d\n", _len);
+		}
+		return dest;
+#endif
+	}
+	const char * getStr(int * len = NULL) {
+		int _len;
+		if (len == NULL) {
+			len = &_len;
+		}
 		if (this->pos > this->len) {
 			return NULL;
 		}
-		int len = getInt();
+		*len = getInt();
 		if (this->len > 1024) {
 			this->len = 1024;
 		}
-		if (this->pos + len > this->len) {
-			len = this->len - this->pos;
+		if (this->pos + *len > this->len) {
+			*len = this->len - this->pos;
 		}
 		char * str = (this->str + this->pos);
-		str[len] = 0;
-		this->pos += len;
+		str[*len] = 0;
+		this->pos += *len;
 		return str;
 	}
 	/////////////////////////////////////
@@ -82,6 +143,7 @@ public:
 
 	INetSession * session;
 
+	char _str[1025];
 	char str[1025];
 
 	int used;

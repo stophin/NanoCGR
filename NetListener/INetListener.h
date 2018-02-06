@@ -28,6 +28,7 @@ public:
 	SOCKET hListenSocket; //listen socket port
 	SOCKET hSessionSocket;
 #endif
+	INT isRunning;
 
 public:
 	HANDLE_MUTEX hMutex;

@@ -4,7 +4,7 @@
 
 #pragma once
 
-//#define _NANOC_WINDOWS_
+#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 
@@ -82,6 +82,7 @@ typedef HANDLE HANDLE_MUTEX;
 #include <sys/types.h>
 #include <sys/time.h>
 #include <semaphore.h>
+#include <locale.h>
 
 typedef signed char         INT8, *PINT8;
 typedef signed short        INT16, *PINT16;

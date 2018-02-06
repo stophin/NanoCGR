@@ -92,6 +92,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 	//从这里获取网络监听消息
 	MultiLinkList<CharString> * msgQueue = &GetNetListener()->msgQueue;
 	while (true) {
+		if (pThis->iModel->isRunning == 0) {
+			GetNetListener()->isRunning = 0;
+		}
 		charString = NULL;
 		_charString = NULL;
 		__NANOC_THREAD_MUTEX_LOCK__(pThis->hNetMutex);
@@ -118,6 +121,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
+		pThis->Sleep(100);
 	}
 
 	printf("MainThread exited\n");

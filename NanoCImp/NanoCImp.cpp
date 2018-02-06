@@ -44,13 +44,11 @@ void NanoCImp::MainLoop() {
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				INT32 pid = charString->getInt();
-				INT32 id = charString->getInt();
-				const CHAR * str = charString->getStr();
-				INT32 tid = charString->getInt();
+				const CHAR * _str = "ÄãºÃ";
+				const CHAR * str = charString->getStrUnicode();
 
 				printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
-				printf("%d %d %s, %d\n", pid, id, str, tid);
+				printf("%s\n", str);
 
 				//»Ø¸´
 				if (GetNanoC()->sendMessage(charString->session, str) > 0) {
@@ -59,6 +57,7 @@ void NanoCImp::MainLoop() {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+		pThis->Sleep(100);
 	}
 
 	printf("This is NanoCImp MainLoop End\n");
