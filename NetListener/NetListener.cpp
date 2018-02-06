@@ -600,6 +600,7 @@ int NetListener::sendMessage(INetSession * session, const char * buf) {
 	if (_session->socket == INVALID_SOCKET) {
 		return -1;
 	}
+
 #ifdef _NANOC_WINDOWS_
 	WSABUF  wasBuf;
 	wasBuf.buf = (CHAR*)buf;

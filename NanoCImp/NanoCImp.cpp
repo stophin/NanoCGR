@@ -44,14 +44,13 @@ void NanoCImp::MainLoop() {
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				const CHAR * _str = "ÄãºÃ";
-				const CHAR * str = charString->getStrUnicode();
+				charString->transFromUnicode();
 
 				printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
-				printf("%s\n", str);
+				printf("%s\n", charString->getLastAsANSI());
 
 				//»Ø¸´
-				if (GetNanoC()->sendMessage(charString->session, str) > 0) {
+				if (GetNanoC()->sendMessage(charString->session, charString->getLastAsUTF8()) > 0) {
 					printf("NanoCImp Send\n");
 				}
 			}

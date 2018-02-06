@@ -4,7 +4,7 @@
 
 #pragma once
 
-#define _NANOC_WINDOWS_
+//#define _NANOC_WINDOWS_
 
 #ifdef _NANOC_WINDOWS_
 

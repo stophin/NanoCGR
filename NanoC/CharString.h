@@ -43,28 +43,58 @@ public:
 		this->pos += sizeof(int);
 		return ret;
 	}
-	const char * getStrUnicode() {
+	const char * getLastAsUTF8() {
+		return this->__str;
+	}
+	const char * getLastAsANSI() {
+		return this->_str;
+	}
+	const char * transFromUnicode() {
 		int len;
 		const char * str = this->getStr(&len);
 
 #ifdef _NANOC_WINDOWS_
 
-		//返回需要的buffer大小
-		int _len = WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, _str, 1024, "△", NULL);
+		int _len;
+		//获取ANSI编码
+		_len = WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, NULL, 0, "△", NULL);
+		if (_len > 1024) {
+			_len = 1024;
+		}
+		//memset(_str, 0, _len + 1);
+		WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, _str, _len, "△", NULL);
+		int cc = 0;
 		if (_len > 0) {
-			//计算中非双字节字符的个数
-			int cc = 0;
+			//计算中ascii字符个数
 			for (int i = 0; i < len && i < _len; i++) {
 				if (_str[i] & 0x80) {
 					continue;
 				}
 				cc++;
 			}
+			//设置实际大小
 			_str[len - cc] = 0;
 		} else {
 			_str[0] = 0;
-			printf("Trans failed: %d\n", _len);
+			printf("Trans failed(ANSI): %d\n", _len);
 		}
+
+		//获取UTF-8编码
+		_len = WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)str, len, NULL, 0, NULL, NULL);
+		if (_len > 1024) {
+			_len = 1024;
+		}
+		//memset(__str, 0, _len + 1);
+		WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)str, len, __str, _len, NULL, NULL);
+		if (_len > 0) {
+			//设置实际大小
+			__str[len - cc + (len - 2 * cc) / 2] = 0;
+		}
+		else {
+			__str[0] = 0;
+			printf("Trans failed(UTF-8): %d\n", _len);
+		}
+
 		return _str;
 #else 
 		//Linux下wchar占4个字节，需要对2字节字符串进行扩充
@@ -87,17 +117,19 @@ public:
 			}
 			this->_str[ind] = str[i];
 		}
-		char * dest = &this->_str[len * 3];
 
 		setlocale(LC_ALL, "");
-		int _len = wcstombs(dest, (wchar_t*)_str, 1024 - len * 3);
+		int _len = wcstombs(__str, (wchar_t*)_str, 1024 - len * 2 - 1);
 		if (_len > 0) {
 		}
 		else {
 			//dest[0] = 0;
 			printf("Trans failed: %d\n", _len);
 		}
-		return dest;
+		for (int i = 0; __str[i]; i++) {
+			_str[i] = __str[i];
+		}
+		return __str;
 #endif
 	}
 	const char * getStr(int * len = NULL) {
@@ -144,6 +176,7 @@ public:
 	INetSession * session;
 
 	char _str[1025];
+	char __str[1025];
 	char str[1025];
 
 	int used;
