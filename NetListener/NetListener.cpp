@@ -351,7 +351,6 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 }
 #else
 void NetListener::CleanUp() {
-	printf("CleanUP\n");
 	if (NULL != m_phIOThread) {
 		if (WAIT_TIMEOUT == __NANOC_THREAD_WAIT__(m_phIOThread)) {
 			__NANOC_THREAD_END__(m_phIOThread);

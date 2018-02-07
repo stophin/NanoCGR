@@ -122,13 +122,16 @@ public:
 		setlocale(LC_ALL, "");
 		int _len = wcstombs(__str, (wchar_t*)_str, 1024);
 		if (_len > 0) {
+			__str[_len] = 0;
+			for (int i = 0; __str[i]; i++) {
+				_str[i] = __str[i];
+			}
+			_str[_len] = 0;
 		}
 		else {
-			//dest[0] = 0;
+			__str[0] = 0;
+			_str[0] = 0;
 			printf("Trans failed: %d\n", _len);
-		}
-		for (int i = 0; __str[i]; i++) {
-			_str[i] = __str[i];
 		}
 		return __str;
 #endif
