@@ -158,11 +158,12 @@ void NetListener::Init() {
 	}
 }
 
-INT32 NetListener::MakeFreeIOCompletionPort(NetSession* session) {
+INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 	INT32 n32RetFlag = 0;
-	if (NULL == session) {
+	if (NULL == _session) {
 		return n32RetFlag;
 	}
+	NetSession * session = (NetSession*)_session;
 
 	//使用AcceptEx接收客户端连接而不是开辟线程等待连接
 	LPFN_ACCEPTEX lpfnAcceptEx = NULL;//AcceptEx函数指针
@@ -220,6 +221,9 @@ INT32 NetListener::MakeFreeIOCompletionPort(NetSession* session) {
 	return n32RetFlag;
 }
 
+#include <time.h>
+#include <string>
+using namespace std;
 
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
@@ -308,6 +312,41 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						   if (NULL == pThis->hCompletionPort) {
 							   printf("Error connect IOCP\n");
 							   n32RetFlag = -1;
+						   }
+
+						   if (0 == n32RetFlag) {
+							   //返回http信息
+							   string statusCode("200 OK");
+							   string contentType("text/html");
+							   string content("96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket");
+							   string contentSize(std::to_string(content.size()));
+							   string head("\r\nHTTP/1.1 ");
+							   string ContentType("\r\nContent-Type: ");
+							   string ServerHead("\r\nServer: localhost");
+							   string ContentLength("\r\nContent-Length: ");
+							   string Date("\r\nDate: ");
+							   string Newline("\r\n");
+							   time_t rawtime;
+							   time(&rawtime);
+							   string message;
+							   message += head;
+							   message += statusCode;
+							   message += ContentType;
+							   message += contentType;
+							   message += ServerHead;
+							   message += ContentLength;
+							   message += contentSize;
+							   message += Date;
+							   message += (string)ctime(&rawtime);
+							   message += Newline;
+
+							   //回复
+							   if (pThis->sendMessage(session, message.c_str()) > 0) {
+								   printf("NanoCImp Header Send\n");
+							   }
+							   if (pThis->sendMessage(session, content.c_str()) > 0) {
+								   printf("NanoCImp Content Send\n");
+							   }
 						   }
 					   }
 
@@ -474,6 +513,10 @@ void NetListener::Init() {
 	}
 }
 
+
+#include <time.h>
+#include <string>
+using namespace std;
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
 
@@ -541,6 +584,44 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						NetSession * session = pThis->netSession.GetFreeSession();
 						if (NULL != session) {
 							session->socket = conn_fds;
+						}
+						else {
+							n32RetFlag = -1;
+						}
+
+						if (0 == n32RetFlag) {
+							//返回http信息
+							string statusCode("200 OK");
+							string contentType("text/html");
+							string content("96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket");
+							string contentSize("12");
+							string head("\r\nHTTP/1.1 ");
+							string ContentType("\r\nContent-Type: ");
+							string ServerHead("\r\nServer: localhost");
+							string ContentLength("\r\nContent-Length: ");
+							string Date("\r\nDate: ");
+							string Newline("\r\n");
+							time_t rawtime;
+							time(&rawtime);
+							string message;
+							message += head;
+							message += statusCode;
+							message += ContentType;
+							message += contentType;
+							message += ServerHead;
+							message += ContentLength;
+							message += contentSize;
+							message += Date;
+							message += (string)ctime(&rawtime);
+							message += Newline;
+
+							//回复
+							if (pThis->sendMessage(session, message.c_str()) > 0) {
+								printf("NanoCImp Header Send\n");
+							}
+							if (pThis->sendMessage(session, content.c_str()) > 0) {
+								printf("NanoCImp Content Send\n");
+							}
 						}
 
 						continue;

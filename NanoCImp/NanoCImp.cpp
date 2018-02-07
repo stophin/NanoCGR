@@ -24,6 +24,7 @@ void NanoCImp::Sleep(INT32 n32MilliSecond) {
 #endif
 }
 
+
 void NanoCImp::MainLoop() {
 	printf("This is NanoCImp MainLoop\n");
 	NanoCImp * pThis = (NanoCImp*)this;
@@ -45,14 +46,25 @@ void NanoCImp::MainLoop() {
 			if (NULL != charString) {
 				msgQueue->removeLink(charString);
 
-				charString->transFromUnicode();
+				UINT32 n32Protocol = charString->getInt();
 
-				printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
-				printf("%s\n", charString->getLastAsANSI());
+				switch (n32Protocol) {
+				case 1://OnConnect
+				{
+						  break;
+				}
+				default:
+				{
+						   charString->transFromUnicode();
 
-				//»Ø¸´
-				if (GetNanoC()->sendMessage(charString->session, charString->getLastAsUTF8()) > 0) {
-					printf("NanoCImp Send\n");
+						   printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+						   printf("%s\n", charString->getLastAsANSI());
+
+						   //»Ø¸´
+						   if (GetNanoC()->sendMessage(charString->session, charString->getLastAsUTF8()) > 0) {
+							   printf("NanoCImp Send\n");
+						   }
+				}
 				}
 			}
 		}

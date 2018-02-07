@@ -22,7 +22,7 @@ public:
 	NetSessionManager netSession;
 #ifdef _NANOC_WINDOWS_
 
-	INT32 MakeFreeIOCompletionPort(NetSession* session);
+	INT32 MakeFreeIOCompletionPort(INetSession* session);
 #else
 #endif
 public:
