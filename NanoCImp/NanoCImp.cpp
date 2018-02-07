@@ -5,6 +5,7 @@
 
 NanoCImp::NanoCImp() {
 	printf("NanoCImp is registered\n");
+	this->isRunning = 1;
 	GetNanoC()->SetModelInstance(this);
 }
 NanoCImp::~NanoCImp() {

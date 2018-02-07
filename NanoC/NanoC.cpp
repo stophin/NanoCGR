@@ -74,7 +74,6 @@ void NanoC::MainLoop() {
 		//获取线程锁
 		iModel->hMutex = this->hMutex;
 		iModel->hNetMutex = this->hNetMutex;
-		iModel->isRunning = 1;
 		iModel->MainLoop();
 	}
 }

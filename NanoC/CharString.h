@@ -103,6 +103,7 @@ public:
 				continue;
 			}
 			this->_str[i] = 0;
+			this->__str[i] = 0;
 		}
 		for (int i = 0; i < len; i++) {
 			int ind = 0;
@@ -141,8 +142,8 @@ public:
 			return NULL;
 		}
 		*len = getInt();
-		if (this->len > 1024) {
-			this->len = 1024;
+		if (*len > 1024) {
+			*len = 1024;
 		}
 		if (this->pos + *len > this->len) {
 			*len = this->len - this->pos;

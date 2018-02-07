@@ -65,24 +65,6 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//bind listen socket with io completion port
-		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
-		//start io thread
-		//创建消息池
-		static CharStringPool pool;
-		this->msgPool = &pool;
-		//创建线程锁
-		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
-		//创建线程
-		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
-		if (NULL == m_phIOThread) {
-			printf("IOCP thread start error\n");
-			n32RetFlag = n32StateFlag;
-		}
-	}
-
-	n32StateFlag--;
-	if (0 == n32RetFlag) {
 		//创建流式套接字，绑定到本机
 		//this->hListenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 		this->hListenSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -144,6 +126,24 @@ void NetListener::Init() {
 			if (MakeFreeIOCompletionPort(session)) {
 				break;
 			}
+		}
+	}
+
+	n32StateFlag--;
+	if (0 == n32RetFlag) {
+		//bind listen socket with io completion port
+		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
+		//start io thread
+		//创建消息池
+		static CharStringPool pool;
+		this->msgPool = &pool;
+		//创建线程锁
+		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+		//创建线程
+		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
+		if (NULL == m_phIOThread) {
+			printf("IOCP thread start error\n");
+			n32RetFlag = n32StateFlag;
 		}
 	}
 
@@ -351,6 +351,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 }
 #else
 void NetListener::CleanUp() {
+	printf("CleanUP\n");
 	if (NULL != m_phIOThread) {
 		if (WAIT_TIMEOUT == __NANOC_THREAD_WAIT__(m_phIOThread)) {
 			__NANOC_THREAD_END__(m_phIOThread);
@@ -375,20 +376,6 @@ void NetListener::Init() {
 	INT32 n32RetFlag = 0;
 	INT32 n32StateFlag = 0;
 	
-	n32StateFlag--;
-	if (0 == n32RetFlag) {
-		//start io thread
-		//创建消息池
-		this->msgPool = (CharStringPool*)GetPool();
-		//创建线程锁
-		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
-		//创建线程
-		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
-		if (NULL == m_phIOThread) {
-			printf("IOCP thread start error\n");
-			n32RetFlag = n32StateFlag;
-		}
-	}
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
@@ -463,6 +450,21 @@ void NetListener::Init() {
 		}
 	}
 
+	n32StateFlag--;
+	if (0 == n32RetFlag) {
+		//start io thread
+		//创建消息池
+		this->msgPool = (CharStringPool*)GetPool();
+		//创建线程锁
+		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
+		//创建线程
+		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
+		if (NULL == m_phIOThread) {
+			printf("IOCP thread start error\n");
+			n32RetFlag = n32StateFlag;
+		}
+	}
+
 	if (0 != n32RetFlag){
 		printf("Error: %d\n", n32RetFlag);
 		this->CleanUp();
@@ -505,8 +507,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			//返回epoll获取的消息数，并copy数据到event里面
 			wait_fds = epoll_wait(pThis->epoll_fd, evs, cur_fds, -1);
 			if (wait_fds == -1) {
-				printf("Epoll wait error: %d\n", errno);
+				printf("Epoll wait error: %d: %s\n", errno, strerror(errno));
 				n32RetFlag = -1;
+				wait_fds = epoll_wait(pThis->epoll_fd, evs, cur_fds, -1);
 			}
 		}
 
