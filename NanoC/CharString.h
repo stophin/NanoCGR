@@ -120,7 +120,7 @@ public:
 		}
 
 		setlocale(LC_ALL, "");
-		int _len = wcstombs(__str, (wchar_t*)_str, 1024 - len * 2 - 1);
+		int _len = wcstombs(__str, (wchar_t*)_str, 1024);
 		if (_len > 0) {
 		}
 		else {
