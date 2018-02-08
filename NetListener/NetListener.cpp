@@ -398,6 +398,13 @@ void NetListener::Init() {
 		stAddr.sin_family = AF_INET;
 		stAddr.sin_port = htons(9005);
 
+		//enable address reuse
+		//it's helpful when processed ended and restarted
+		int nOptval = 1;
+		if (setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (const void *)&nOptval, sizeof(int)) < 0) {
+			printf("Sock opt failed\n", errno);
+			n32RetFlag = n32StateFlag;
+		}
 		int iRc = bind(hListenSocket, (sockaddr*)&stAddr, sizeof(stAddr));
 		if (iRc < 0) {
 			printf("Socket bind error: %d\n", errno);
@@ -554,7 +561,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						}
 
 						NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
-						printf("Recv from session ID: %d\n", evs[i].data.fd);
+						printf("Recv from session ID: %d (%d) \n", evs[i].data.fd, nRead);
 						if (NULL != session) {
 							__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 							buf[nRead] = 0;
