@@ -165,6 +165,8 @@ INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 	}
 	NetSession * session = (NetSession*)_session;
 
+	session->connectionType = 0;
+
 	//使用AcceptEx接收客户端连接而不是开辟线程等待连接
 	LPFN_ACCEPTEX lpfnAcceptEx = NULL;//AcceptEx函数指针
 	GUID guidAcceptEx = WSAID_ACCEPTEX;
@@ -554,9 +556,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						nRead = read(evs[i].data.fd, buf, sizeof(buf));
 						if (nRead <= 0) {
 							printf("Recv error on session ID: %d, (%d)\n", evs[i].data.fd, nRead);
-							close(evs[i].data.fd);
-							epoll_ctl(pThis->epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
-							--pThis->cur_fds;
+							NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
+							if (NULL != session) {
+								pThis->closeConnection(session);
+							}
 							continue;
 						}
 
@@ -686,6 +689,7 @@ int NetListener::closeConnection(INetSession * _session) {
 	this->MakeFreeIOCompletionPort(_session);
 #else
 	NetSession * session = (NetSession*)_session;
+	session->connectionType = 0;
 	epoll_event ev;
 	close(session->socket);
 	epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, session->socket, &ev);
