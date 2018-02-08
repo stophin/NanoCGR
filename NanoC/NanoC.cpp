@@ -136,6 +136,10 @@ int NanoC::sendMessage(INetSession * session, const char * buf) {
 	return GetNetListener()->sendMessage(session, buf);
 }
 
+int NanoC::closeSession(INetSession * session) {
+	return GetNetListener()->closeConnection(session);
+}
+
 NanoC g_NanoCInstance;
 
 extern "C" __NANOC_EXPORT__ INanoC * GetNanoC() {

@@ -38,4 +38,5 @@ public:
 	CharStringPool * msgPool;
 
 	virtual int sendMessage(INetSession * session, const char * buf) = 0;
+	virtual int closeSession(INetSession * session) = 0;
 };

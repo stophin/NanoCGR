@@ -26,8 +26,9 @@ public:
 #else
 #endif
 public:
-	virtual void addMsgQueue(INetSession * session, const char * buf);
+	virtual int addMsgQueue(INetSession * session, const char * buf);
 	virtual int sendMessage(INetSession * session, const char * buf);
+	virtual int closeConnection(INetSession * session);
 };
 
 __NANOC_EXPORT__ INetListener * GetNetListener();

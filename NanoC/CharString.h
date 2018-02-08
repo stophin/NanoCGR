@@ -24,6 +24,17 @@ public:
 	{
 	}
 
+	static int match(const char * src, const char * dest) {
+		int i;
+		for (i = 0; src[i] && dest[i]; i++) {
+			if (src[i] == dest[i]) {
+				continue;
+			}
+			return 0;
+		}
+		return i;
+	}
+
 	/////////////////////////////////////
 	int pos;
 	int len;

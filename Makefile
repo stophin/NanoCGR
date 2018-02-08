@@ -1,4 +1,8 @@
+default: d
 
+clean: clean_d
+
+run: run_d
 
 d: NetListener_d NanoC_d NanoCImp_d NanoCGR_d
 

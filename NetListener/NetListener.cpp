@@ -221,10 +221,6 @@ INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 	return n32RetFlag;
 }
 
-#include <time.h>
-#include <string>
-using namespace std;
-
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
 
@@ -279,6 +275,8 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		if (0 == n32RetFlag) {
 			// 检查在套接字上是否有错误发生
 			if (0 == BytesTransferred){
+				printf("Socket error: 0 bytes transfered\n");
+				
 				//closesocket(PerHandleData->socket);
 				//GlobalFree(PerHandleData);
 				//GlobalFree(PerIoData);
@@ -289,97 +287,53 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				continue;
 			}
 
-			switch (PerIoData->operationType) {
-			case 1://accept 
-			{
-					   //获取一个net session
-					   //NetSession * session = netSession.GetFreeSession();
-					   NetSession * session = (NetSession*)PerIoData->netSession;
-					   if (NULL == session) {
-						   printf("Error create session\n");
-						   n32RetFlag = -1;
-					   }
+			if (PerIoData->operationType == 1) {
+				//获取一个net session
+				//NetSession * session = netSession.GetFreeSession();
+				NetSession * session = (NetSession*)PerIoData->netSession;
+				if (NULL == session) {
+					printf("Error create session\n");
+					n32RetFlag = -1;
+				}
 
-					   if (0 == n32RetFlag) {
-						   printf("Created session on id: %d\n", session->iSessionID);
-						   // 创建用来和套接字关联的单句柄数据信息结构
-						   //PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// 在堆中为这个PerHandleData申请指定大小的内存
-						   PerHandleData = (LPPER_HANDLE_DATA)&session->handleData;
-						   PerHandleData->socket = PerIoData->client;
-						   //memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
-						   //客户端套接字和完成端口关联
-						   HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, pThis->hCompletionPort, (SIZE_INT)PerHandleData, 0);
-						   if (NULL == pThis->hCompletionPort) {
-							   printf("Error connect IOCP\n");
-							   n32RetFlag = -1;
-						   }
+				if (0 == n32RetFlag) {
+					printf("Created session on id: %d\n", session->iSessionID);
+					// 创建用来和套接字关联的单句柄数据信息结构
+					//PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// 在堆中为这个PerHandleData申请指定大小的内存
+					PerHandleData = (LPPER_HANDLE_DATA)&session->handleData;
+					PerHandleData->socket = PerIoData->client;
+					//memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
+					//客户端套接字和完成端口关联
+					HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, pThis->hCompletionPort, (SIZE_INT)PerHandleData, 0);
+					if (NULL == pThis->hCompletionPort) {
+						printf("Error connect IOCP\n");
+						n32RetFlag = -1;
+					}
+				}
 
-						   if (0 == n32RetFlag) {
-							   //返回http信息
-							   string statusCode("200 OK");
-							   string contentType("text/html");
-							   string content("96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket");
-							   string contentSize(std::to_string(content.size()));
-							   string head("\r\nHTTP/1.1 ");
-							   string ContentType("\r\nContent-Type: ");
-							   string ServerHead("\r\nServer: localhost");
-							   string ContentLength("\r\nContent-Length: ");
-							   string Date("\r\nDate: ");
-							   string Newline("\r\n");
-							   time_t rawtime;
-							   time(&rawtime);
-							   string message;
-							   message += head;
-							   message += statusCode;
-							   message += ContentType;
-							   message += contentType;
-							   message += ServerHead;
-							   message += ContentLength;
-							   message += contentSize;
-							   message += Date;
-							   message += (string)ctime(&rawtime);
-							   message += Newline;
-
-							   //回复
-							   if (pThis->sendMessage(session, message.c_str()) > 0) {
-								   printf("NanoCImp Header Send\n");
-							   }
-							   if (pThis->sendMessage(session, content.c_str()) > 0) {
-								   printf("NanoCImp Content Send\n");
-							   }
-						   }
-					   }
-
-					   if (0 == n32RetFlag) {
-						   // 开始在接受套接字上处理I/O使用重叠I/O机制
-						   // 在新建的套接字上投递一个或多个异步
-						   // WSARecv或WSASend请求，这些I/O请求完成后，工作者线程会为I/O请求提供服务	
-						   // 单I/O操作数据(I/O重叠)
-						   LPPER_IO_OPERATION_DATA PerIoData = NULL;
-						   //PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
-						   PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
-						   ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED));
-						   PerIoData->databuff.len = 1024;
-						   PerIoData->databuff.buf = PerIoData->buffer;
-						   PerIoData->operationType = 0;	// read
-						   WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
-					   }
-					   break;
+				if (0 == n32RetFlag) {
+					//从session获取重叠IO，在下面设置数据操作
+					//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
+					PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
+				}
 			}
-			default://data
-			{
-						// 开始数据处理，接收来自客户端的数据
-						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-						pThis->addMsgQueue((NetSession*)PerIoData->netSession, PerIoData->databuff.buf);
-						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
-
-						// 为下一个重叠调用建立单I/O操作数据
-						ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
-						PerIoData->databuff.len = 1024;
-						PerIoData->databuff.buf = PerIoData->buffer;
-						PerIoData->operationType = 0;	// read
-						WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
+			
+			if (0 == n32RetFlag) {
+				// 为下一个重叠调用建立单I/O操作数据
+				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
+				PerIoData->databuff.len = 1024;
+				PerIoData->databuff.buf = PerIoData->buffer;
+				PerIoData->operationType = 0;	// read
+				WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
 			}
+
+			if (0 == n32RetFlag) {
+				printf("Msg recevd\n");
+				// 开始数据处理，接收来自客户端的数据
+				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+				NetSession * session = (NetSession*)PerIoData->netSession;
+				pThis->addMsgQueue(session, PerIoData->databuff.buf);
+				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 			}
 		}
 	}
@@ -514,9 +468,6 @@ void NetListener::Init() {
 }
 
 
-#include <time.h>
-#include <string>
-using namespace std;
 __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	printf("This is IOCPThread\n");
 
@@ -529,7 +480,6 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 	printf("Waiting for client connection...\n");
 
-	INT32 cur_fds = 1;
 	INT32 wait_fds;
 	INT32 conn_fds;
 	epoll_event	evs[MAXEPOLL];
@@ -538,6 +488,8 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 	socklen_t len;
 	INT32 nRead;
 	char 	buf[MAXLINE];
+
+	pThis->cur_fds = 1;
 	while (true) {
 		if (pThis->isRunning == 0) {
 			break;
@@ -547,11 +499,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 		if (0 == n32RetFlag) {
 			//返回epoll获取的消息数，并copy数据到event里面
-			wait_fds = epoll_wait(pThis->epoll_fd, evs, cur_fds, -1);
+			wait_fds = epoll_wait(pThis->epoll_fd, evs, pThis->cur_fds, -1);
 			if (wait_fds == -1) {
 				printf("Epoll wait error: %d: %s\n", errno, strerror(errno));
 				n32RetFlag = -1;
-				wait_fds = epoll_wait(pThis->epoll_fd, evs, cur_fds, -1);
 			}
 		}
 
@@ -559,7 +510,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			//遍历event
 			for (int i = 0; i < wait_fds; i++) {
 				//accept连接请求
-				if (evs[i].data.fd == pThis->hListenSocket && cur_fds < MAXEPOLL) {
+				if (evs[i].data.fd == pThis->hListenSocket && pThis->cur_fds < MAXEPOLL) {
 					conn_fds = accept(pThis->hListenSocket, (sockaddr*)&cliaddr, &len);
 					if (INVALID_SOCKET == conn_fds) {
 						printf("Accept error: %d\n", errno);
@@ -579,7 +530,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 					}
 
 					if (0 == n32RetFlag) {
-						++cur_fds;
+						++pThis->cur_fds;
 
 						NetSession * session = pThis->netSession.GetFreeSession();
 						if (NULL != session) {
@@ -588,64 +539,29 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						else {
 							n32RetFlag = -1;
 						}
-
-						if (0 == n32RetFlag) {
-							//返回http信息
-							string statusCode("200 OK");
-							string contentType("text/html");
-							string content("96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket");
-							string contentSize("12");
-							string head("\r\nHTTP/1.1 ");
-							string ContentType("\r\nContent-Type: ");
-							string ServerHead("\r\nServer: localhost");
-							string ContentLength("\r\nContent-Length: ");
-							string Date("\r\nDate: ");
-							string Newline("\r\n");
-							time_t rawtime;
-							time(&rawtime);
-							string message;
-							message += head;
-							message += statusCode;
-							message += ContentType;
-							message += contentType;
-							message += ServerHead;
-							message += ContentLength;
-							message += contentSize;
-							message += Date;
-							message += (string)ctime(&rawtime);
-							message += Newline;
-
-							//回复
-							if (pThis->sendMessage(session, message.c_str()) > 0) {
-								printf("NanoCImp Header Send\n");
-							}
-							if (pThis->sendMessage(session, content.c_str()) > 0) {
-								printf("NanoCImp Content Send\n");
-							}
-						}
-
-						continue;
 					}
 				}
+				else {
+					if (0 == n32RetFlag) {
+						nRead = read(evs[i].data.fd, buf, sizeof(buf));
+						if (nRead <= 0) {
+							printf("Recv error on session ID: %d, (%d)\n", evs[i].data.fd, nRead);
+							close(evs[i].data.fd);
+							epoll_ctl(pThis->epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
+							--pThis->cur_fds;
+							continue;
+						}
 
-				if (0 == n32RetFlag) {
-					nRead = read(evs[i].data.fd, buf, sizeof(buf));
-					if (nRead <= 0) {
-						printf("Recv error on session ID: %d\n", evs[i].data.fd);
-						close(evs[i].data.fd);
-						epoll_ctl(pThis->epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &ev);
-						--cur_fds;
-						continue;
+						NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
+						printf("Recv from session ID: %d\n", evs[i].data.fd);
+						if (NULL != session) {
+							__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+							pThis->addMsgQueue(session, buf);
+							__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+						}
+
+						//write(evs[i].data.fd, buf, nRead);
 					}
-
-					NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
-					if (NULL != session) {
-						__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-						pThis->addMsgQueue(session, buf);
-						__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
-					}
-
-					//write(evs[i].data.fd, buf, nRead);
 				}
 			}
 		}
@@ -659,7 +575,32 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 #endif
 
-void NetListener::addMsgQueue(INetSession * session, const char * buf) {
+int NetListener::addMsgQueue(INetSession * session, const char * buf) {
+
+	//解析数据是否是http请求
+	session->connectionType = 0;
+	if (CharString::match(buf, "GET")) {
+		session->connectionType = 1;
+	}
+	else if (CharString::match(buf, "POST")) {
+		session->connectionType = 2;
+	}
+	//TODO
+	//http请求
+	char buffer[1025] = { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
+	if (session->connectionType) {
+		int * tSize = (int*)&buffer[0];
+		int * size = (int*)&buffer[8];
+		char * _buffer = buffer + 12;
+		int len;
+		for (len = 0; buf[len] && len < 1024; len++) {
+			_buffer[len] = buf[len];
+		}
+		_buffer[len] = 0;
+		*tSize = len + 12;
+		*size = len;
+		buf = buffer;
+	}
 
 	//printf("SID %d:  %s\n", session->iSessionID, buf);
 	//获取网络消息发送保存到队列里面
@@ -673,6 +614,7 @@ void NetListener::addMsgQueue(INetSession * session, const char * buf) {
 		charString->f = this->msgQueue.linkcount;
 		this->msgQueue.insertLink(charString);
 	}
+	return session->connectionType;
 }
 
 int NetListener::sendMessage(INetSession * session, const char * buf) {
@@ -695,6 +637,20 @@ int NetListener::sendMessage(INetSession * session, const char * buf) {
 #else
 	return write(_session->socket, buf, strlen(buf));
 #endif
+}
+
+int NetListener::closeConnection(INetSession * _session) {
+	printf("Sesssion closed\n");
+#ifdef _NANOC_WINDOWS_
+	this->MakeFreeIOCompletionPort(_session);
+#else
+	NetSession * session = (NetSession*)_session;
+	epoll_event ev;
+	close(session->socket);
+	epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, session->socket, &ev);
+	--this->cur_fds;
+#endif
+	return 0;
 }
 
 

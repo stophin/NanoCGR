@@ -4,17 +4,16 @@
 #pragma once
 
 #include "Platform.h"
-
-#ifdef _NANOC_WINDOWS_
-
 class INetSession {
 public:
 	INetSession() : bIfUse(false) {
 	}
 	INT iSessionID;
 	BOOL bIfUse;
+	INT connectionType;
 };
 
+#ifdef _NANOC_WINDOWS_
 /**
 * 结构体名称：PER_IO_DATA
 * 结构体功能：重叠I/O需要用到的结构体，临时记录IO数据
@@ -53,13 +52,6 @@ public:
 };
 
 #else
-class INetSession {
-public:
-	INetSession() : bIfUse(false) {
-	}
-	INT iSessionID;
-	BOOL bIfUse;
-};
 
 class NetSession : public INetSession {
 public:

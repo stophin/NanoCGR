@@ -27,6 +27,7 @@ public:
 	SOCKET epoll_fd;	//epoll
 	SOCKET hListenSocket; //listen socket port
 	SOCKET hSessionSocket;
+	INT cur_fds;
 #endif
 	INT isRunning;
 
@@ -35,6 +36,7 @@ public:
 	MultiLinkList<CharString> msgQueue;
 	CharStringPool * msgPool;
 
-	virtual void addMsgQueue(INetSession * session, const char * buf) = 0;
+	virtual int addMsgQueue(INetSession * session, const char * buf) = 0;
 	virtual int sendMessage(INetSession * session, const char * buf) = 0;
+	virtual int closeConnection(INetSession * session) = 0;
 };

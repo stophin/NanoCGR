@@ -23,6 +23,7 @@ public:
 	HINSTANCE hInstance;
 
 	virtual int sendMessage(INetSession * session, const char * buf);
+	virtual int closeSession(INetSession * session);
 };
 
 extern "C" __NANOC_EXPORT__ INanoC * GetNanoC();
