@@ -21,7 +21,6 @@ public:
 	SOCKET hSessionSocket;
 	LPFN_ACCEPTEX lpfnAcceptEx;
 	LPFN_GETACCEPTEXSOCKADDRS lpfnAcceptExSocketAddrs;
-	INT8 bOutputBuffer[1024];
 	WSAOVERLAPPED	sOverLapped;
 #else
 	SOCKET epoll_fd;	//epoll

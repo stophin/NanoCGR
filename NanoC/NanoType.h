@@ -21,6 +21,9 @@
 // TODO:  在此处引用程序需要的其他头文件
 #include <winsock2.h>
 #include <Mswsock.h>
+#include <time.h>
+#include <string>
+using namespace std;
 
 typedef signed char         INT8, *PINT8;
 typedef signed short        INT16, *PINT16;
@@ -83,6 +86,9 @@ typedef HANDLE HANDLE_MUTEX;
 #include <sys/time.h>
 #include <semaphore.h>
 #include <locale.h>
+#include <time.h>
+#include <string>
+using namespace std;
 
 typedef signed char         INT8, *PINT8;
 typedef signed short        INT16, *PINT16;

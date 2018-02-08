@@ -36,6 +36,9 @@
     <ClInclude Include="CharString.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="sha1.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NanoC.cpp">
@@ -45,6 +48,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CharString.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sha1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -57,7 +57,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)/NanoC.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)/NanoC.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -82,9 +82,11 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\NanoC\sha1.cpp" />
     <ClCompile Include="NanoCImp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\NanoC\sha1.h" />
     <ClInclude Include="INanoCImp.h" />
     <ClInclude Include="NanoCImp.h" />
     <ClInclude Include="Platform.h" />

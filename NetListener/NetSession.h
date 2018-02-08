@@ -22,7 +22,7 @@ typedef struct
 {
 	OVERLAPPED overlapped;
 	WSABUF databuff;
-	char buffer[1025];
+	char buffer[MAX_BUFFERSIZE];
 	int BufferLen;
 	int operationType;
 	INetSession * netSession;

@@ -24,11 +24,6 @@ void NanoCImp::Sleep(INT32 n32MilliSecond) {
 #endif
 }
 
-#include <time.h>
-#include <string>
-using namespace std;
-
-
 void NanoCImp::MainLoop() {
 	printf("This is NanoCImp MainLoop\n");
 	NanoCImp * pThis = (NanoCImp*)this;
@@ -53,57 +48,129 @@ void NanoCImp::MainLoop() {
 				UINT32 n32Protocol = charString->getInt();
 
 				switch (n32Protocol) {
-				case 1://OnConnect
+				case 1://Http
 				{
 						   printf("Http:\n");
 						   const char * str = charString->getStr();
 						   printf("%s\n", str);
 
-						   //返回http信息
-						   string statusCode("200 OK");
-						   string contentType("text/html");
-						   string content("96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket");
-						   string contentSize("65");
-						   string head("\r\nHTTP/1.1 ");
-						   string ContentType("\r\nContent-Type: ");
-						   string ServerHead("\r\nServer: localhost");
-						   string ContentLength("\r\nContent-Length: ");
-						   string Date("\r\nDate: ");
-						   string Newline("\r\n");
-						   time_t rawtime;
-						   time(&rawtime);
-						   string message;
-						   message += head;
-						   message += statusCode;
-						   message += ContentType;
-						   message += contentType;
-						   message += ServerHead;
-						   message += ContentLength;
-						   message += contentSize;
-						   message += Date;
-						   message += (string)ctime(&rawtime);
-						   message += Newline;
-
-						   //回复
-						   INT send = 0;
-						   if (GetNanoC()->sendMessage(charString->session, message.c_str()) > 0) {
-							   printf("NanoCImp Header Send\n");
-							   send = 1;
-						   }
-						   if (GetNanoC()->sendMessage(charString->session, content.c_str()) > 0) {
-							   printf("NanoCImp Content Send\n");
-							   send = 2;
+						   //解析地址
+						   const char * url = str;
+						   for (int i = 0; url[i]; i++) {
+							   if (CharString::match(&url[i], "GET ")) {
+								   url = url + i + strlen("GET ");
+								   break;
+							   }
 						   }
 
-						   if (send == 2) {
-							   //HTTP关闭连接
-							   //GetNanoC()->closeSession(charString->session);
+							if (CharString::match(url, "/socket.io/1/websocket/96e1cc6b-b2c7-4372-967f-172b3f9a2a99")) {
+
+								char _key[128];
+								const char * key = str;
+								for (int i = 0; key[i]; i++) {
+									if (CharString::match(&key[i], "Sec-WebSocket-Key: ")) {
+										key = key + i + strlen("Sec-WebSocket-Key: ");
+										break;
+									}
+								}
+								int len;
+								for (len = 0; key[len]; len++) {
+									if (key[len] == '\r') {
+										break;
+									}
+									_key[len] = key[len];
+								}
+								_key[len] = 0;
+
+								//返回http信息
+								if (CharString::makeWS(charString->_str, charString->__str,101, _key, "")) {
+									//回复
+									int sendCompleted = 0;
+									if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
+										printf("NanoCImp Header Send\n");
+										//printf("%s", charString->_str);
+										sendCompleted = 1;
+									}
+									if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
+										printf("NanoCImp Content Send\n");
+										//printf("%s", charString->__str);
+										sendCompleted = 2;
+									}
+
+									if (sendCompleted == 2) {
+									}
+									else {
+										printf("NanoCImp Msg send error\n");
+									}
+								}
+							}
+						   else if (CharString::match(url, "/socket.io/1")) {
+							   //返回http信息
+							   if (CharString::makeHTTP(charString->_str, charString->__str, 200, "96e1cc6b-b2c7-4372-967f-172b3f9a2a99:200:60:websocket,flashsocket")) {
+								   //回复
+								   int sendCompleted = 0;
+								   if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
+									   printf("NanoCImp Header Send\n");
+									   sendCompleted = 1;
+								   }
+								   if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
+									   printf("NanoCImp Content Send\n");
+									   sendCompleted = 2;
+								   }
+
+								   if (sendCompleted == 2) {
+									   //HTTP关闭连接
+									   //TODO
+									   //这里在多个线程中关闭连接可能会出现错误
+									   //GetNanoC()->closeSession(charString->session);
+								   }
+								   else {
+									   printf("NanoCImp Msg send error\n");
+									   msgQueue->insertLink(charString);
+								   }
+							   }
 						   }
 						   else {
-							   printf("NanoCImp Msg send error\n");
-							   msgQueue->insertLink(charString);
+							   //返回http信息
+							   if (CharString::makeHTTP(charString->_str, charString->__str, 200, "NO DATA CONTENT")) {
+								   //回复
+								   int sendCompleted = 0;
+								   if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
+									   printf("NanoCImp Header Send\n");
+									   sendCompleted = 1;
+								   }
+								   if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
+									   printf("NanoCImp Content Send\n");
+									   sendCompleted = 2;
+								   }
+
+								   if (sendCompleted == 2) {
+									   //HTTP关闭连接
+									   //TODO
+									   //这里在多个线程中关闭连接可能会出现错误
+									   //GetNanoC()->closeSession(charString->session);
+								   }
+								   else {
+									   printf("NanoCImp Msg send error\n");
+									   msgQueue->insertLink(charString);
+								   }
+							   }
 						   }
 						  break;
+				}
+				case 2: {//WebSocket
+							const char * str = charString->getStr();
+
+							CharString::decodeFrame(charString->_str, str);
+
+							printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+							printf("%s\n", charString->_str);
+
+							//回复
+							if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
+								printf("NanoCImp Send\n");
+							}
+							break;
 				}
 				default:
 				{

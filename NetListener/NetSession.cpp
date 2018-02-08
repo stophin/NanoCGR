@@ -3,7 +3,6 @@
 
 #include "NetListener.h"
 
-
 NetSession::NetSession(){
 }
 
@@ -45,9 +44,6 @@ NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 }
 
 #else
-
-#define MAXEPOLL 1000
-#define MAXLINE 1024
 
 NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 	for (int i = 0; i < this->n32Size; i++) {

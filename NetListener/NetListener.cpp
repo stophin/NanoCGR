@@ -186,7 +186,7 @@ INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 		//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
 		PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
 		ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED));
-		PerIoData->databuff.len = 1024;
+		PerIoData->databuff.len = MAX_BUFFERSIZE;
 		PerIoData->databuff.buf = PerIoData->buffer;
 		PerIoData->operationType = 1;  // read
 		PerIoData->client = acceptSocket;
@@ -321,7 +321,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			if (0 == n32RetFlag) {
 				// 为下一个重叠调用建立单I/O操作数据
 				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
-				PerIoData->databuff.len = 1024;
+				PerIoData->databuff.len = MAX_BUFFERSIZE;
 				PerIoData->databuff.buf = PerIoData->buffer;
 				PerIoData->operationType = 0;	// read
 				WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
@@ -332,6 +332,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				// 开始数据处理，接收来自客户端的数据
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 				NetSession * session = (NetSession*)PerIoData->netSession;
+				PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 			}
@@ -556,6 +557,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						printf("Recv from session ID: %d\n", evs[i].data.fd);
 						if (NULL != session) {
 							__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+							buf[nRead] = 0;
 							pThis->addMsgQueue(session, buf);
 							__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 						}
@@ -577,31 +579,6 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 int NetListener::addMsgQueue(INetSession * session, const char * buf) {
 
-	//解析数据是否是http请求
-	session->connectionType = 0;
-	if (CharString::match(buf, "GET")) {
-		session->connectionType = 1;
-	}
-	else if (CharString::match(buf, "POST")) {
-		session->connectionType = 2;
-	}
-	//TODO
-	//http请求
-	char buffer[1025] = { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
-	if (session->connectionType) {
-		int * tSize = (int*)&buffer[0];
-		int * size = (int*)&buffer[8];
-		char * _buffer = buffer + 12;
-		int len;
-		for (len = 0; buf[len] && len < 1024; len++) {
-			_buffer[len] = buf[len];
-		}
-		_buffer[len] = 0;
-		*tSize = len + 12;
-		*size = len;
-		buf = buffer;
-	}
-
 	//printf("SID %d:  %s\n", session->iSessionID, buf);
 	//获取网络消息发送保存到队列里面
 	if (this->msgPool->used >= POOL_MAX) {
@@ -609,6 +586,63 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf) {
 	}
 	CharString * charString = this->msgPool->get();
 	if (charString != NULL) {
+
+		//解析数据是否是http请求
+		int connectionType = 0;
+		if (CharString::match(buf, "GET")) {
+			connectionType = 1;
+		}
+		else if (CharString::match(buf, "POST")) {
+			connectionType = 2;
+		}
+		//TODO
+		//http请求
+		if (connectionType) {
+			session->connectionType = connectionType;
+			char * buffer = charString->__str;
+			for (int i = 0; i < 12; i++) {
+				buffer[i] = 0;
+			}
+			int * tSize = (int*)&buffer[0];
+			int * protocol = (int*)&buffer[4];
+			int * size = (int*)&buffer[8];
+			char * _buffer = buffer + 12;
+			int len;
+			for (len = 0; buf[len] && len < MAX_BUFFERSIZE - 12; len++) {
+				_buffer[len] = buf[len];
+			}
+			_buffer[len] = 0;
+			*tSize = len + 12;
+			*size = len;
+			*protocol = 1;
+			buf = buffer;
+		}
+		else {
+			//WebSocket
+			if (session->connectionType) {
+				char * buffer = charString->__str;
+				for (int i = 0; i < 12; i++) {
+					buffer[i] = 0;
+				}
+				int * tSize = (int*)&buffer[0];
+				int * protocol = (int*)&buffer[4];
+				int * size = (int*)&buffer[8];
+				char * _buffer = buffer + 12;
+				int len;
+				for (len = 0; buf[len] && len < MAX_BUFFERSIZE - 12; len++) {
+					_buffer[len] = buf[len];
+				}
+				_buffer[len] = 0;
+				*tSize = len + 12;
+				*size = len;
+				*protocol = 2;
+				buf = buffer;
+			}
+			else {
+				buf = buf;
+			}
+		}
+
 		charString->set(buf);
 		charString->session = session;
 		charString->f = this->msgQueue.linkcount;

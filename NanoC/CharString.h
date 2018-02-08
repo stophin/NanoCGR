@@ -5,6 +5,11 @@
 
 #include "../NanoC/NanoType.h"
 
+#include "sha1.h"
+
+#define MAX_BUFFERSIZE 8192
+
+
 class INetSession;
 typedef class CharString
 {
@@ -23,8 +28,169 @@ public:
 	~CharString()
 	{
 	}
+	enum WS_FrameType
+	{
+		WS_EMPTY_FRAME = 0xF0,
+		WS_ERROR_FRAME = 0xF1,
+		WS_TEXT_FRAME = 0x01,
+		WS_BINARY_FRAME = 0x02,
+		WS_PING_FRAME = 0x09,
+		WS_PONG_FRAME = 0x0A,
+		WS_OPENING_FRAME = 0xF3,
+		WS_CLOSING_FRAME = 0x08
+	};
+	static int decodeFrame(char * out, const char * inFrame) {
+		if (NULL == out) {
+			return 0;
+		}
+		out[0] = 0;
+		if (NULL == inFrame) {
+			return 0;
+		}
+		unsigned int frameLength;
+		for (frameLength = 0; inFrame[frameLength]; frameLength++);
+		if (frameLength < 2) {
+			return 0;
+		}
+		//检查扩展为并忽略
+		if ((inFrame[0] & 0x70) != 0x0) {
+			return 0;
+		}
+		//fin位：为1表示已接收完整保温，为0表示继续监听后续报文
+		if ((inFrame[0] & 0x80) != 0x80) {
+			return 0;
+		}
+		//mask位：位1表示数据被加密
+		if ((inFrame[1] & 0x80) != 0x80) {
+			return 0;
+		}
+		//操作码
+		unsigned short payloadLength = 0;
+		unsigned char payLoadExtraBytes = 0;
+		unsigned char opcode = (unsigned char)(inFrame[0] & 0x0f);
+		if (WS_TEXT_FRAME == opcode) {
+			//处理utf-8编码的文本帧
+			payloadLength = (unsigned short)(inFrame[1] & 0x7f);
+			if (0x7e == payloadLength) {
+				//unsigned short payloadLength16b = 0;
+				//unsigned short payloadFieldExtraBytes = 2;
+				unsigned short payloadLength16b = 0;
+				payloadLength16b = (unsigned short)(inFrame[2]);
+				payloadLength = ntohs(payloadLength16b);
+			}
+			else if (0x7f == payloadLength) {
+				//数据过长暂不支持
+				return 0;
+			}
+		}
+		else if (opcode == WS_BINARY_FRAME ||
+			opcode == WS_PING_FRAME ||
+			opcode == WS_PONG_FRAME) {
+			//二进制/ping/pong帧暂不处理
+		}
+		else if (opcode == WS_CLOSING_FRAME) {
+			return 0;
+		}
+		else {
+			return 0;
+		}
+		//数据解码
+		if (payloadLength > 0) {
+			//header: 2字节，masking key: 4字节
+			const char * maskingKey = &inFrame[2 + payLoadExtraBytes];
+			const char * frameData = &inFrame[2 + payLoadExtraBytes + 4];
+			char * payloadData = out;
+			if (payloadLength > MAX_BUFFERSIZE) {
+				payloadLength = MAX_BUFFERSIZE;
+			}
+			for (int i = 0; i < payloadLength; i++) {
+				payloadData[i] = frameData[i];
+			}
+			payloadData[payloadLength] = 0;
+			for (int i = 0; i < payloadLength; i++)  {
+				payloadData[i] = payloadData[i] ^ maskingKey[i % 4];
+			}
+		}
+
+		return 0;
+	}
+
+	static int makeHTTP(char * header, char * content, int statusCode, const char * msg) {
+		if (NULL == content) {
+			return 0;
+		}
+		if (NULL == header) {
+			return 0;
+		}
+		if (NULL == msg) {
+			return 0;
+		}
+
+		int contentSize;
+		for (contentSize = 0; msg[contentSize] && contentSize < MAX_BUFFERSIZE; contentSize++) {
+			content[contentSize] = msg[contentSize];
+		}
+		content[contentSize] = 0;
+		time_t rawtime;
+		time(&rawtime);
+		int headerPos = 0;
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\nHTTP/1.1 ");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "%d OK", statusCode);
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\nContent-Type: ");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "text/html");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\nServer: localhost");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\nContent-Length: ");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "%d", contentSize);
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\nDate: ");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, ctime(&rawtime));
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "\r\n");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) header[headerPos] = 0;
+
+		return contentSize + headerPos;
+	}
+
+	static int makeWS(char * header, char * content, int statusCode, const char * key, const char * msg) {
+		if (NULL == content) {
+			return 0;
+		}
+		if (NULL == header) {
+			return 0;
+		}
+		if (NULL == msg) {
+			return 0;
+		}
+		//计算key
+		const char * MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+		string serverKey = string(key) + MAGIC_KEY;
+		unsigned char message_digest[20];
+		SHA1_String((const unsigned char*)serverKey.c_str(), serverKey.size(), message_digest);
+		serverKey = base64_encode(message_digest, 20);
+
+		int contentSize;
+		for (contentSize = 0; msg[contentSize] && contentSize < MAX_BUFFERSIZE; contentSize++) {
+			content[contentSize] = msg[contentSize];
+		}
+		content[contentSize] = 0;
+		time_t rawtime;
+		time(&rawtime);
+		int headerPos = 0;
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "HTTP/1.1 %d Switching Protocols\r\n", statusCode);
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Connection: upgrade\r\n");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Sec-WebSocket-Accept: %s\r\n", serverKey.c_str());
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Upgrade: websocket\r\n\r\n");
+
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) header[headerPos] = 0;
+
+		return contentSize + headerPos;
+	}
 
 	static int match(const char * src, const char * dest) {
+		if (NULL == src) {
+			return 0;
+		}
+		if (NULL == dest) {
+			return 0;
+		}
 		int i;
 		for (i = 0; src[i] && dest[i]; i++) {
 			if (src[i] == dest[i]) {
@@ -36,13 +202,13 @@ public:
 	}
 
 	/////////////////////////////////////
-	int pos;
-	int len;
+	unsigned int pos;
+	unsigned int len;
 	void Reflush() {
 		this->pos = 0;
 		this->len = this->getInt();
-		if (this->len > 1024) {
-			this->len = 1024;
+		if (this->len > MAX_BUFFERSIZE) {
+			this->len = MAX_BUFFERSIZE;
 		}
 		this->str[this->len] = 0;
 	}
@@ -61,7 +227,7 @@ public:
 		return this->_str;
 	}
 	const char * transFromUnicode() {
-		int len;
+		unsigned int len;
 		const char * str = this->getStr(&len);
 
 #ifdef _NANOC_WINDOWS_
@@ -69,8 +235,8 @@ public:
 		int _len;
 		//获取ANSI编码
 		_len = WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, NULL, 0, "△", NULL);
-		if (_len > 1024) {
-			_len = 1024;
+		if (_len > MAX_BUFFERSIZE) {
+			_len = MAX_BUFFERSIZE;
 		}
 		//memset(_str, 0, _len + 1);
 		WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, _str, _len, "△", NULL);
@@ -92,8 +258,8 @@ public:
 
 		//获取UTF-8编码
 		_len = WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)str, len, NULL, 0, NULL, NULL);
-		if (_len > 1024) {
-			_len = 1024;
+		if (_len > MAX_BUFFERSIZE) {
+			_len = MAX_BUFFERSIZE;
 		}
 		//memset(__str, 0, _len + 1);
 		WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)str, len, __str, _len, NULL, NULL);
@@ -110,7 +276,7 @@ public:
 #else 
 		//Linux下wchar占4个字节，需要对2字节字符串进行扩充
 		for (int i = len * 2; i >= 0; i--){
-			if (i > 1024) {
+			if (i > MAX_BUFFERSIZE) {
 				continue;
 			}
 			this->_str[i] = 0;
@@ -124,14 +290,14 @@ public:
 			else {
 				ind = i * 2 - 1;
 			}
-			if (ind > 1024) {
+			if (ind > MAX_BUFFERSIZE) {
 				continue;
 			}
 			this->_str[ind] = str[i];
 		}
 
 		setlocale(LC_ALL, "");
-		int _len = wcstombs(__str, (wchar_t*)_str, 1024);
+		int _len = wcstombs(__str, (wchar_t*)_str, MAX_BUFFERSIZE);
 		if (_len > 0) {
 			__str[_len] = 0;
 			for (int i = 0; __str[i]; i++) {
@@ -147,8 +313,8 @@ public:
 		return __str;
 #endif
 	}
-	const char * getStr(int * len = NULL) {
-		int _len;
+	const char * getStr(unsigned int * len = NULL) {
+		unsigned int _len;
 		if (len == NULL) {
 			len = &_len;
 		}
@@ -156,8 +322,8 @@ public:
 			return NULL;
 		}
 		*len = getInt();
-		if (*len > 1024) {
-			*len = 1024;
+		if (*len > MAX_BUFFERSIZE) {
+			*len = MAX_BUFFERSIZE;
 		}
 		if (this->pos + *len > this->len) {
 			*len = this->len - this->pos;
@@ -175,9 +341,9 @@ public:
 			this->str[0] = 0;
 		}
 		else{
-			for (len = 0; str[len] != 0 && len < 1024; len++);
-			int _len = *(int*)(str);
-			if (_len <= 1024 && _len > len) {
+			for (len = 0; str[len] != 0 && len < MAX_BUFFERSIZE; len++);
+			unsigned int _len = *(unsigned int*)(str);
+			if (_len <= MAX_BUFFERSIZE && _len > len) {
 				len = _len;
 			}
 			for (int i = 0; i < len; i++) {
@@ -190,9 +356,9 @@ public:
 
 	INetSession * session;
 
-	char _str[1025];
-	char __str[1025];
-	char str[1025];
+	char _str[MAX_BUFFERSIZE];
+	char __str[MAX_BUFFERSIZE];
+	char str[MAX_BUFFERSIZE];
 
 	int used;
 	int f;
