@@ -11,18 +11,20 @@
 * <pre><b>modification:</b></pre>
 * <pre>Write modifications here.</pre>
 */
-#ifndef _SHA1_H  
-#define _SHA1_H  
+#ifndef _SHA1_H
+#define _SHA1_H
 
-#include <stdio.h>  
-#include <memory.h>  
+#include <stdio.h>
+#include <memory.h>
+#include <string>
+using namespace std;
 
-#ifdef __cplusplus  
+#ifdef __cplusplus
 extern"C"
 {
-#endif /**< __cplusplus */  
+#endif /**< __cplusplus */
 
-#define SHA1_SIZE_BYTE 20  
+#define SHA1_SIZE_BYTE 20
 
 	/**
 	* @brief SHA1_String
@@ -66,17 +68,13 @@ extern"C"
 	*/
 	int SHA1_File_Compare(const char* filePathA, const char* filePathB);
 
-#ifdef __cplusplus  
+#ifdef __cplusplus
+
+	bool is_base64(unsigned char c);
+
+	std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 }
 
-#endif /**< __cplusplus */  
+#endif /**< __cplusplus */
 
-
-#include <string>
-using namespace std;
-
-static bool is_base64(unsigned char c);
-std::string 	base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
-
-#endif /**< _SHA1_H */  
-
+#endif /**< _SHA1_H */

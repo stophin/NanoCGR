@@ -14,7 +14,7 @@
 
 
 
-#include "SHA1.h"  
+#include "SHA1.h"
 
 
 typedef struct SHAstate_st
@@ -28,13 +28,13 @@ typedef struct SHAstate_st
 	int isTooMang;      /*正常为0，当处理的信息超过2^64 bits时为1；*/
 } SHA1_Context;
 
-#define INIT_DATA_h0 0x67452301U  
-#define INIT_DATA_h1 0xEFCDAB89U  
-#define INIT_DATA_h2 0x98BADCFEU  
-#define INIT_DATA_h3 0x10325476U  
-#define INIT_DATA_h4 0xC3D2E1F0U  
+#define INIT_DATA_h0 0x67452301U
+#define INIT_DATA_h1 0xEFCDAB89U
+#define INIT_DATA_h2 0x98BADCFEU
+#define INIT_DATA_h3 0x10325476U
+#define INIT_DATA_h4 0xC3D2E1F0U
 
-#define SHA1CircularShift(bits, word) (((word) << (bits)) | ((word) >> (32 - (bits))))  
+#define SHA1CircularShift(bits, word) (((word) << (bits)) | ((word) >> (32 - (bits))))
 
 const unsigned long SHA1_Kt[] = { 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6 };
 typedef unsigned long(*SHA1_pFun)(unsigned long, unsigned long, unsigned long);
@@ -503,16 +503,18 @@ int SHA1_File_Compare(const char* filePathA, const char *filePathB)
 	}
 }
 
-static const std::string base64_chars =
+
+
+const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 "abcdefghijklmnopqrstuvwxyz"
 "0123456789+/";
 
-static bool is_base64(unsigned char c) {
+bool is_base64(unsigned char c) {
 	return (isalnum(c) || (c == '+') || (c == '/'));
 }
 
-std::string 	base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
+std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
 	std::string ret;
 	int i = 0;
 	int j = 0;
@@ -550,10 +552,9 @@ std::string 	base64_encode(unsigned char const* bytes_to_encode, unsigned int in
 			ret += '=';
 
 	}
-
 	return ret;
-
 }
+
 /*
 void main()
 {
