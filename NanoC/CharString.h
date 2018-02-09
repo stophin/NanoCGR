@@ -5,8 +5,6 @@
 
 #include "../NanoC/NanoType.h"
 
-#include "sha1.h"
-
 #define MAX_BUFFERSIZE 8192
 
 
@@ -28,6 +26,7 @@ public:
 	~CharString()
 	{
 	}
+
 	enum WS_FrameType
 	{
 		WS_EMPTY_FRAME = 0xF0,
@@ -114,6 +113,53 @@ public:
 
 		return 0;
 	}
+	static int encodeFrame(char * out, WS_FrameType frameType, const char * msg) {
+		if (NULL == out) {
+			return 0;
+		}
+		out[0] = 0;
+		if (NULL == msg) {
+			return 0;
+		}
+		unsigned int messageLength;
+		for (messageLength = 0; msg[messageLength]; messageLength++);
+		if (messageLength > MAX_BUFFERSIZE) {
+			//数据过长暂不支持
+			printf("Frame message too long\n");
+			return 0;
+		}
+		unsigned char payloadFieldExtraBytes = (messageLength <= 0x7d) ? 0 : 2;
+		//header: 2字节,mask位设置为0（不加密），则后面的masking key无需填写，省略4字节
+		unsigned char frameHeaderSize = 2 + payloadFieldExtraBytes;
+		unsigned char frameHeader[4];//使用frameHeaderSize的长度
+		for (int i = 0; i < 4; i++) {
+			frameHeader[i] = 0;
+		}
+		//fin位为1，扩展位为0，操作位为frameType
+		frameHeader[0] = (unsigned char)(0x80 | frameType);
+		//填充数据长度
+		if (messageLength <= 0x7d) {
+			frameHeader[1] = (unsigned char)(messageLength);
+		}
+		else {
+			frameHeader[1] = 0x7e;
+			unsigned short *len = (unsigned short*)(&frameHeader[2]);
+			*len = htons(messageLength);
+		}
+		//填充数据 
+		unsigned int frameSize = frameHeaderSize + messageLength;
+		char * frame = out;
+		for (int i = 0; i < frameHeaderSize; i++) {
+			frame[i] = frameHeader[i];
+		}
+		frame[frameHeaderSize] = 0;
+		for (int i = 0; i < messageLength; i++) {
+			frame[frameHeaderSize + i] = msg[i];
+		}
+		frame[frameSize] = 0;
+
+		return frameSize;
+	}
 
 	static int makeHTTP(char * header, char * content, int statusCode, const char * msg) {
 		if (NULL == content) {
@@ -148,6 +194,70 @@ public:
 
 		return contentSize + headerPos;
 	}
+
+#define SHA1_SIZE_BYTE 20
+	typedef struct SHAstate_st
+	{
+		unsigned long h[SHA1_SIZE_BYTE / 4]; /* 存放摘要结果(32*5=160 bits)*/
+		unsigned long Nl;
+		unsigned long Nh;       /*存放信息总位数，Nh：高32位，Nl：低32位*/
+		unsigned long data[16]; /*数据从第0个的高8位开始依次放置*/
+		int FlagInWord;     /*标识一个data元素中占用的字节数（从高->低），取值0,1,2,3*/
+		int msgIndex;       /*当前已填充满的data数组元素数。*/
+		int isTooMang;      /*正常为0，当处理的信息超过2^64 bits时为1；*/
+	} SHA1_Context;
+
+#define INIT_DATA_h0 0x67452301U
+#define INIT_DATA_h1 0xEFCDAB89U
+#define INIT_DATA_h2 0x98BADCFEU
+#define INIT_DATA_h3 0x10325476U
+#define INIT_DATA_h4 0xC3D2E1F0U
+
+#define SHA1CircularShift(bits, word) (((word) << (bits)) | ((word) >> (32 - (bits))))
+
+	typedef unsigned long(*SHA1_pFun)(unsigned long, unsigned long, unsigned long);
+
+	/*定义四个函数*/
+	static unsigned long SHA1_ft0_19(unsigned long b, unsigned long c, unsigned long d)
+	{
+		return (b&c) | ((~b)&d);
+	}
+
+	static unsigned long SHA1_ft20_39(unsigned long b, unsigned long c, unsigned long d)
+	{
+		return b ^ c ^ d;
+	}
+
+	static unsigned long SHA1_ft40_59(unsigned long b, unsigned long c, unsigned long d)
+	{
+		return (b&c) | (b&d) | (c&d);
+	}
+
+	static unsigned long SHA1_ft60_79(unsigned long b, unsigned long c, unsigned long d)
+	{
+		return b ^ c ^ d;
+	}
+
+	static int SHA1_Init(SHA1_Context *c);
+	static int SHA1_GetMsgBits(SHA1_Context *c);
+	static int SHA1_Clear_data(SHA1_Context *c);
+	static int SHA1_One(SHA1_Context *c);
+	static int SHA1_PadMessage(SHA1_Context *c);
+	static int SHA1_Update(SHA1_Context *c, const unsigned char *chBuff, unsigned int n);
+	static int SHA1_Final(SHA1_Context *c, unsigned char * md);
+	/**
+	* @brief SHA1_String
+	*
+	* Detailed description.
+	* @param[in] inputString 要进行处理的无符号字符串指针
+	* @param[in] len 要处理的信息长度，n<= strlen(p);
+	* @param[out] pOutSHA1Buf 输出摘要信息，长度为20的 unsigned char ，共160 bits
+	* @return int
+	*/
+	static int SHA1_String(const unsigned char* inputString, unsigned long len, unsigned char* pOutSHA1Buf);
+
+	static bool is_base64(unsigned char c);
+	static std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
 	static int makeWS(char * header, char * content, int statusCode, const char * key, const char * msg) {
 		if (NULL == content) {
@@ -237,7 +347,7 @@ public:
 
 #ifdef _NANOC_WINDOWS_
 
-		int _len;
+		unsigned int _len;
 		//获取ANSI编码
 		_len = WideCharToMultiByte(CP_ACP, 0, (wchar_t*)str, len, NULL, 0, "△", NULL);
 		if (_len > MAX_BUFFERSIZE) {
@@ -248,7 +358,7 @@ public:
 		int cc = 0;
 		if (_len > 0) {
 			//计算中ascii字符个数
-			for (int i = 0; i < len && i < _len; i++) {
+			for (unsigned int i = 0; i < len && i < _len; i++) {
 				if (_str[i] & 0x80) {
 					i++;
 					continue;
@@ -352,7 +462,7 @@ public:
 			if (_len <= MAX_BUFFERSIZE && _len > len) {
 				len = _len;
 			}
-			for (int i = 0; i < len; i++) {
+			for (unsigned int i = 0; i < len; i++) {
 				this->str[i] = str[i];
 			}
 			this->str[len] = 0;

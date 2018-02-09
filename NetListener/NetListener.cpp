@@ -519,6 +519,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		if (0 == n32RetFlag) {
 			//遍历event
 			for (int i = 0; i < wait_fds; i++) {
+				printf("working on %d/%d %d\n", i, wait_fds, evs[i].data.fd);
 				//accept连接请求
 				if (evs[i].data.fd == pThis->hListenSocket && pThis->cur_fds < MAX_SESSIONSIZE) {
 					conn_fds = accept(pThis->hListenSocket, (sockaddr*)&cliaddr, &len);

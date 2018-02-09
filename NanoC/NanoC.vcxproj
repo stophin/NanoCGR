@@ -90,13 +90,11 @@
     <ClInclude Include="NanoC.h" />
     <ClInclude Include="NanoType.h" />
     <ClInclude Include="Platform.h" />
-    <ClInclude Include="sha1.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharString.cpp" />
     <ClCompile Include="MultiLinkList.cpp" />
     <ClCompile Include="NanoC.cpp" />
-    <ClCompile Include="sha1.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
