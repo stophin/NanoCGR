@@ -250,6 +250,7 @@ public:
 			//计算中ascii字符个数
 			for (int i = 0; i < len && i < _len; i++) {
 				if (_str[i] & 0x80) {
+					i++;
 					continue;
 				}
 				cc++;
