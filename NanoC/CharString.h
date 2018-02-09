@@ -230,6 +230,11 @@ public:
 		unsigned int len;
 		const char * str = this->getStr(&len);
 
+		if (NULL == str) {
+			__str[0] = 0;
+			return __str;
+		}
+
 #ifdef _NANOC_WINDOWS_
 
 		int _len;
@@ -276,21 +281,21 @@ public:
 #else 
 		//Linux下wchar占4个字节，需要对2字节字符串进行扩充
 		for (int i = len * 2; i >= 0; i--){
-			if (i > MAX_BUFFERSIZE) {
+			if (i >= MAX_BUFFERSIZE) {
 				continue;
 			}
 			this->_str[i] = 0;
 			this->__str[i] = 0;
 		}
-		for (int i = 0; i < len; i++) {
-			int ind = 0;
+		for (unsigned int i = 0; i < len; i++) {
+			unsigned int ind = 0;
 			if (i % 2 == 0) {
 				ind = i * 2;
 			}
 			else {
 				ind = i * 2 - 1;
 			}
-			if (ind > MAX_BUFFERSIZE) {
+			if (ind >= MAX_BUFFERSIZE) {
 				continue;
 			}
 			this->_str[ind] = str[i];
