@@ -27,17 +27,14 @@ public:
 	{
 	}
 
-	enum WS_FrameType
-	{
-		WS_EMPTY_FRAME = 0xF0,
-		WS_ERROR_FRAME = 0xF1,
-		WS_TEXT_FRAME = 0x01,
-		WS_BINARY_FRAME = 0x02,
-		WS_PING_FRAME = 0x09,
-		WS_PONG_FRAME = 0x0A,
-		WS_OPENING_FRAME = 0xF3,
-		WS_CLOSING_FRAME = 0x08
-	};
+#define WS_EMPTY_FRAME  0xF0
+#define WS_ERROR_FRAME  0xF1
+#define WS_TEXT_FRAME  0x01
+#define WS_BINARY_FRAME 0x02
+#define WS_PING_FRAME 0x09
+#define WS_PONG_FRAME  0x0A
+#define WS_OPENING_FRAME  0xF3
+#define WS_CLOSING_FRAME  0x08
 	static int decodeFrame(char * out, const char * inFrame) {
 		if (NULL == out) {
 			return 0;
@@ -113,7 +110,7 @@ public:
 
 		return 0;
 	}
-	static int encodeFrame(char * out, WS_FrameType frameType, const char * msg) {
+	static int encodeFrame(char * out, int frameType, const char * msg) {
 		if (NULL == out) {
 			return 0;
 		}

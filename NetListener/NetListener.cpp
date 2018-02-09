@@ -558,6 +558,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						nRead = read(evs[i].data.fd, buf, sizeof(buf));
 						if (nRead <= 0) {
 							printf("Recv error on session ID: %d, (%d)\n", evs[i].data.fd, nRead);
+							printf("%d : %s\n", errno, strerror(errno));
 							NetSession * session = pThis->netSession.GetFreeSession(evs[i].data.fd);
 							if (NULL != session) {
 								pThis->closeConnection(session);
