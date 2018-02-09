@@ -61,10 +61,9 @@ public:
 	SOCKET socket;
 };
 
-#define MAXEPOLL 1000
-#define MAXLINE 1024
-
 #endif
+
+#define MAX_SESSIONSIZE 10
 
 class NetSessionManager {
 public:

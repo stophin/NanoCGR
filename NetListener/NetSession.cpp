@@ -10,7 +10,7 @@ NetSession::~NetSession() {
 }
 
 NetSessionManager::NetSessionManager() {
-	this->n32Size = 10;
+	this->n32Size = MAX_SESSIONSIZE;
 	this->netSession = new NetSession[this->n32Size];
 	memset(this->netSession, 0, this->n32Size * sizeof(NetSession));
 	// 创建递增的sessionID

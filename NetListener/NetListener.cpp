@@ -330,10 +330,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			}
 
 			if (0 == n32RetFlag) {
-				printf("Msg recevd\n");
+				NetSession * session = (NetSession*)PerIoData->netSession;
+				printf("Msg recevd on session %d(%d)\n", session->iSessionID, BytesTransferred);
 				// 开始数据处理，接收来自客户端的数据
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
-				NetSession * session = (NetSession*)PerIoData->netSession;
 				PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
@@ -429,7 +429,7 @@ void NetListener::Init() {
 	if (0 == n32RetFlag) {
 		// 设置每个集成允许打开的最大文件数目
 		rlimit rlt;
-		rlt.rlim_max = rlt.rlim_cur = MAXEPOLL;
+		rlt.rlim_max = rlt.rlim_cur = MAX_SESSIONSIZE;
 		int iRc = setrlimit(RLIMIT_NOFILE, &rlt);
 		if (iRc < 0) {
 			printf("Set limit error: %d\n", errno);
@@ -442,7 +442,7 @@ void NetListener::Init() {
 	if (0 == n32RetFlag) {
 		// 创建epoll
 		epoll_event	ev;
-		epoll_fd = epoll_create(MAXEPOLL);
+		epoll_fd = epoll_create(MAX_SESSIONSIZE);
 		ev.events = EPOLLIN | EPOLLET;
 		ev.data.fd = this->hListenSocket;
 		int iRc = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, hListenSocket, &ev);
@@ -492,12 +492,12 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 	INT32 wait_fds;
 	INT32 conn_fds;
-	epoll_event	evs[MAXEPOLL];
+	epoll_event	evs[MAX_SESSIONSIZE];
 	epoll_event	ev;
 	sockaddr_in cliaddr;
 	socklen_t len;
 	INT32 nRead;
-	char 	buf[MAXLINE];
+	char 	buf[MAX_BUFFERSIZE];
 
 	pThis->cur_fds = 1;
 	while (true) {
@@ -520,7 +520,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			//遍历event
 			for (int i = 0; i < wait_fds; i++) {
 				//accept连接请求
-				if (evs[i].data.fd == pThis->hListenSocket && pThis->cur_fds < MAXEPOLL) {
+				if (evs[i].data.fd == pThis->hListenSocket && pThis->cur_fds < MAX_SESSIONSIZE) {
 					conn_fds = accept(pThis->hListenSocket, (sockaddr*)&cliaddr, &len);
 					if (INVALID_SOCKET == conn_fds) {
 						printf("Accept error: %d\n", errno);
@@ -547,6 +547,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 							session->socket = conn_fds;
 						}
 						else {
+							printf("Session get error\n");
 							n32RetFlag = -1;
 						}
 					}
@@ -570,6 +571,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 							buf[nRead] = 0;
 							pThis->addMsgQueue(session, buf);
 							__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+						}
+						else {
+							printf("Session search error\n");
 						}
 
 						//write(evs[i].data.fd, buf, nRead);
@@ -657,6 +661,9 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf) {
 		charString->session = session;
 		charString->f = this->msgQueue.linkcount;
 		this->msgQueue.insertLink(charString);
+	}
+	else {
+		printf("Pool get error\n");
 	}
 	return session->connectionType;
 }

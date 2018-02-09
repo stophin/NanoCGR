@@ -48,6 +48,19 @@ void NanoCImp::MainLoop() {
 				UINT32 n32Protocol = charString->getInt();
 
 				switch (n32Protocol) {
+				case 0://Unicode Stream
+				{
+							charString->transFromUnicode();
+
+							printf("Unicode Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+							printf("%s\n", charString->getLastAsANSI());
+
+							//回复
+							if (GetNanoC()->sendMessage(charString->session, charString->getLastAsUTF8()) > 0) {
+								printf("Unicode Send\n");
+							}
+							break;
+				}
 				case 1://Http
 				{
 						   printf("Http:\n");
@@ -87,12 +100,12 @@ void NanoCImp::MainLoop() {
 									//回复
 									int sendCompleted = 0;
 									if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
-										printf("NanoCImp Header Send\n");
+										printf("Http Header Send\n");
 										//printf("%s", charString->_str);
 										sendCompleted = 1;
 									}
 									if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
-										printf("NanoCImp Content Send\n");
+										printf("Http Content Send\n");
 										//printf("%s", charString->__str);
 										sendCompleted = 2;
 									}
@@ -100,7 +113,7 @@ void NanoCImp::MainLoop() {
 									if (sendCompleted == 2) {
 									}
 									else {
-										printf("NanoCImp Msg send error\n");
+										printf("Http Msg send error\n");
 									}
 								}
 							}
@@ -110,11 +123,11 @@ void NanoCImp::MainLoop() {
 								   //回复
 								   int sendCompleted = 0;
 								   if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
-									   printf("NanoCImp Header Send\n");
+									   printf("Http Header Send\n");
 									   sendCompleted = 1;
 								   }
 								   if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
-									   printf("NanoCImp Content Send\n");
+									   printf("Http Content Send\n");
 									   sendCompleted = 2;
 								   }
 
@@ -125,7 +138,7 @@ void NanoCImp::MainLoop() {
 									   //GetNanoC()->closeSession(charString->session);
 								   }
 								   else {
-									   printf("NanoCImp Msg send error\n");
+									   printf("Http Msg send error\n");
 									   msgQueue->insertLink(charString);
 								   }
 							   }
@@ -136,11 +149,11 @@ void NanoCImp::MainLoop() {
 								   //回复
 								   int sendCompleted = 0;
 								   if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
-									   printf("NanoCImp Header Send\n");
+									   printf("Http Header Send\n");
 									   sendCompleted = 1;
 								   }
 								   if (GetNanoC()->sendMessage(charString->session, charString->__str) > 0) {
-									   printf("NanoCImp Content Send\n");
+									   printf("Http Content Send\n");
 									   sendCompleted = 2;
 								   }
 
@@ -151,38 +164,42 @@ void NanoCImp::MainLoop() {
 									   //GetNanoC()->closeSession(charString->session);
 								   }
 								   else {
-									   printf("NanoCImp Msg send error\n");
+									   printf("Http Msg send error\n");
 									   msgQueue->insertLink(charString);
 								   }
 							   }
 						   }
 						  break;
 				}
-				case 2: {//WebSocket
+				case 2: //WebSocket
+				{
 							const char * str = charString->getStr();
 
 							CharString::decodeFrame(charString->_str, str);
 
-							printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+							printf("WebSocket Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
 							printf("%s\n", charString->_str);
 
 							//回复
 							if (GetNanoC()->sendMessage(charString->session, charString->_str) > 0) {
-								printf("NanoCImp Send\n");
+								printf("WebSocket Send\n");
 							}
 							break;
 				}
-				default:
+				default://Normal Stream
 				{
-						   charString->transFromUnicode();
+							charString->Reflush();
+						   const char * str = charString->getStr();
 
-						   printf("NanoCImp Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
-						   printf("%s\n", charString->getLastAsANSI());
+						   printf("Message Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+						   printf("%s\n", str);
 
 						   //回复
-						   if (GetNanoC()->sendMessage(charString->session, charString->getLastAsUTF8()) > 0) {
-							   printf("NanoCImp Send\n");
+						   if (GetNanoC()->sendMessage(charString->session, str) > 0) {
+							   printf("Message Send\n");
 						   }
+
+						   break;
 				}
 				}
 			}
