@@ -73,8 +73,9 @@ public:
 				//unsigned short payloadLength16b = 0;
 				//unsigned short payloadFieldExtraBytes = 2;
 				unsigned short payloadLength16b = 0;
-				payloadLength16b = (unsigned short)(inFrame[2]);
-				payloadLength = ntohs(payloadLength16b);
+				payloadLength16b = (unsigned short)(&inFrame[2]);
+				//payloadLength = ntohs(payloadLength16b);
+				payloadLength = payloadLength16b;
 			}
 			else if (0x7f == payloadLength) {
 				//数据过长暂不支持
