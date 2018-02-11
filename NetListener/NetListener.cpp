@@ -335,7 +335,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				// 开始数据处理，接收来自客户端的数据
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 				PerIoData->databuff.buf[BytesTransferred] = 0;
-				pThis->addMsgQueue(session, PerIoData->databuff.buf);
+				pThis->addMsgQueue(session, PerIoData->databuff.buf, (int)BytesTransferred);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 			}
 		}
@@ -571,7 +571,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						if (NULL != session) {
 							__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 							buf[nRead] = 0;
-							pThis->addMsgQueue(session, buf);
+							pThis->addMsgQueue(session, buf, nRead);
 							__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 						}
 						else {
@@ -593,7 +593,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 #endif
 
-int NetListener::addMsgQueue(INetSession * session, const char * buf) {
+int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) {
 
 	//printf("SID %d:  %s\n", session->iSessionID, buf);
 	//获取网络消息发送保存到队列里面
@@ -619,18 +619,18 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf) {
 			for (int i = 0; i < 12; i++) {
 				buffer[i] = 0;
 			}
-			int * tSize = (int*)&buffer[0];
-			int * protocol = (int*)&buffer[4];
-			int * size = (int*)&buffer[8];
+			int * ptSize = (int*)&buffer[0];
+			int * pprotocol = (int*)&buffer[4];
+			int * psize = (int*)&buffer[8];
 			char * _buffer = buffer + 12;
 			int len;
-			for (len = 0; buf[len] && len < MAX_BUFFERSIZE - 12; len++) {
+			for (len = 0; /*buf[len]*/len < size && len < MAX_BUFFERSIZE - 12; len++) {
 				_buffer[len] = buf[len];
 			}
 			_buffer[len] = 0;
-			*tSize = len + 12;
-			*size = len;
-			*protocol = 1;
+			*ptSize = len + 12;
+			*psize = len;
+			*pprotocol = 1;
 			buf = buffer;
 		}
 		else {
@@ -640,18 +640,19 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf) {
 				for (int i = 0; i < 12; i++) {
 					buffer[i] = 0;
 				}
-				int * tSize = (int*)&buffer[0];
-				int * protocol = (int*)&buffer[4];
-				int * size = (int*)&buffer[8];
+				int * ptSize = (int*)&buffer[0];
+				int * pprotocol = (int*)&buffer[4];
+				int * psize = (int*)&buffer[8];
 				char * _buffer = buffer + 12;
 				int len;
-				for (len = 0; buf[len] && len < MAX_BUFFERSIZE - 12; len++) {
+				//去除长度为size以内的0
+				for (len = 0; /*buf[len]*/len < size && len < MAX_BUFFERSIZE - 12; len++) {
 					_buffer[len] = buf[len];
 				}
 				_buffer[len] = 0;
-				*tSize = len + 12;
-				*size = len;
-				*protocol = 2;
+				*ptSize = len + 12;
+				*psize = len;
+				*pprotocol = 2;
 				buf = buffer;
 			}
 			else {

@@ -27,6 +27,8 @@ public:
 	{
 	}
 
+	/////////////////////////////////////////////////////
+	//WebSocket frame
 #define WS_EMPTY_FRAME  0xF0
 #define WS_ERROR_FRAME  0xF1
 #define WS_TEXT_FRAME  0x01
@@ -157,7 +159,11 @@ public:
 
 		return frameSize;
 	}
+	/////////////////////////////////////////////////////
 
+
+	/////////////////////////////////////////////////////
+	//HTTP
 	static int makeHTTP(char * header, char * content, int statusCode, const char * msg) {
 		if (NULL == content) {
 			return 0;
@@ -191,7 +197,11 @@ public:
 
 		return contentSize + headerPos;
 	}
+	/////////////////////////////////////////////////////
 
+
+
+	/////////////////////////////////////////////////////
 #define SHA1_SIZE_BYTE 20
 	typedef struct SHAstate_st
 	{
@@ -255,7 +265,8 @@ public:
 
 	static bool is_base64(unsigned char c);
 	static std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
-
+	static std::string base64_decode(std::string const& encoded_string);
+	/////////////////////////////////////////////////////
 	static int makeWS(char * header, char * content, int statusCode, const char * key, const char * msg) {
 		if (NULL == content) {
 			return 0;
@@ -290,6 +301,10 @@ public:
 
 		return contentSize + headerPos;
 	}
+
+	///////////////////////////////////////////////////////
+	//AES
+	static string DecryptionAES(const string& strSrc);
 
 	static int match(const char * src, const char * dest) {
 		if (NULL == src) {

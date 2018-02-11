@@ -392,3 +392,87 @@ std::string CharString::base64_encode(unsigned char const* bytes_to_encode, unsi
 	}
 	return ret;
 }
+
+std::string CharString::base64_decode(std::string const& encoded_string) {
+	int in_len = (int)encoded_string.size();
+	int i = 0;
+	int j = 0;
+	int in_ = 0;
+	unsigned char char_array_4[4], char_array_3[3];
+	std::string ret;
+
+	while (in_len-- && (encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
+		char_array_4[i++] = encoded_string[in_]; in_++;
+		if (i == 4) {
+			for (i = 0; i < 4; i++)
+				char_array_4[i] = (unsigned char)base64_chars.find(char_array_4[i]);
+
+			char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+			char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+			char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+			for (i = 0; (i < 3); i++)
+				ret += char_array_3[i];
+			i = 0;
+		}
+	}
+
+	if (i) {
+		for (j = i; j < 4; j++)
+			char_array_4[j] = 0;
+
+		for (j = 0; j < 4; j++)
+			char_array_4[j] = (unsigned char)base64_chars.find(char_array_4[j]);
+
+		char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+		char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+		char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+		for (j = 0; (j < i - 1); j++) ret += char_array_3[j];
+	}
+
+	return ret;
+}
+
+#include "AES.h"
+const char g_key[17] = "0123456789ABCDEF";
+const char g_iv[17] = "0123456789ABCDEF";
+string CharString::DecryptionAES(const string& strSrc) {
+	string strData = base64_decode(strSrc);
+	size_t length = strData.length();
+	if (length <= 0) {
+		return "";
+	}
+	//密文
+	char *szDataIn = new char[length + 1];
+	memcpy(szDataIn, strData.c_str(), length + 1);
+	//明文
+	char *szDataOut = new char[length + 1];
+	memcpy(szDataOut, strData.c_str(), length + 1);
+
+	//进行AES的CBC模式解密
+	AES aes;
+	aes.MakeKey(g_key, g_iv, 16, 16);
+	aes.Decrypt(szDataIn, szDataOut, length, AES::CBC);
+
+	//去PKCS7Padding填充
+	if (0x00 < szDataOut[length - 1] <= 0x16)
+	{
+		int tmp = szDataOut[length - 1];
+		for (int i = length - 1; i >= length - tmp; i--)
+		{
+			if (szDataOut[i] != tmp)
+			{
+				memset(szDataOut, 0, length);
+				printf("Fill block failed\n");
+				break;
+			}
+			else
+				szDataOut[i] = 0;
+		}
+	}
+	string strDest(szDataOut);
+	delete[] szDataIn;
+	delete[] szDataOut;
+	return strDest;
+}

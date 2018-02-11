@@ -35,7 +35,7 @@ public:
 	MultiLinkList<CharString> msgQueue;
 	CharStringPool * msgPool;
 
-	virtual int addMsgQueue(INetSession * session, const char * buf) = 0;
+	virtual int addMsgQueue(INetSession * session, const char * buf, int size = 0) = 0;
 	virtual int sendMessage(INetSession * session, const char * buf) = 0;
 	virtual int closeConnection(INetSession * session) = 0;
 };
