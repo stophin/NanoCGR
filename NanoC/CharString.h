@@ -7,6 +7,64 @@
 
 #define MAX_BUFFERSIZE 32768
 
+/////////////////////////////////////////////////////
+//AES
+#define BLOCK_SIZE 16
+
+class AES
+{
+public:
+	enum
+	{
+		ECB = 0, CBC = 1, CFB = 2
+	};
+
+private:
+	enum
+	{
+		DEFAULT_BLOCK_SIZE = 16
+	};
+	enum
+	{
+		MAX_BLOCK_SIZE = 32, MAX_ROUNDS = 14, MAX_KC = 8, MAX_BC = 8
+	};
+public:
+	AES();
+	virtual ~AES();
+private:
+	//Key Initialization Flag
+	bool m_bKeyInit;
+	//Encryption (m_Ke) round key
+	int m_Ke[MAX_ROUNDS + 1][MAX_BC];
+	//Decryption (m_Kd) round key
+	int m_Kd[MAX_ROUNDS + 1][MAX_BC];
+	//Key Length
+	int m_keylength;
+	//Block Size
+	int m_blockSize;
+	//Number of Rounds
+	int m_iROUNDS;
+	//Chain Block
+	char m_chain0[MAX_BLOCK_SIZE];
+	char m_chain[MAX_BLOCK_SIZE];
+	//Auxiliary private use buffers
+	int tk[MAX_KC];
+	int a[MAX_BC];
+	int t[MAX_BC];
+private:
+	void Xor(char* buff, char const* chain);
+	void DefEncryptBlock(char const* in, char* result);
+	void DefDecryptBlock(char const* in, char* result);
+	void EncryptBlock(char const* in, char* result);
+	void DecryptBlock(char const* in, char* result);
+public:
+	void MakeKey(char const* key, char const* chain, int keylength =
+		DEFAULT_BLOCK_SIZE, int blockSize = DEFAULT_BLOCK_SIZE);
+	void Encrypt(char const* in, char* result, size_t n, int iMode = ECB);
+	void Decrypt(char const* in, char* result, size_t n, int iMode = ECB);
+};
+/////////////////////////////////////////////////////
+
 
 class INetSession;
 typedef class CharString
@@ -161,6 +219,41 @@ public:
 		return frameSize;
 	}
 	/////////////////////////////////////////////////////
+	//WebSocket
+	static int makeWS(char * header, char * content, int statusCode, const char * key, const char * msg) {
+		if (NULL == content) {
+			return 0;
+		}
+		if (NULL == header) {
+			return 0;
+		}
+		if (NULL == msg) {
+			return 0;
+		}
+		//º∆À„key
+		const char * MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+		string serverKey = string(key) + MAGIC_KEY;
+		unsigned char message_digest[20];
+		SHA1_String((const unsigned char*)serverKey.c_str(), serverKey.size(), message_digest);
+		serverKey = base64_encode(message_digest, 20);
+
+		int contentSize;
+		for (contentSize = 0; msg[contentSize] && contentSize < MAX_BUFFERSIZE; contentSize++) {
+			content[contentSize] = msg[contentSize];
+		}
+		content[contentSize] = 0;
+		time_t rawtime;
+		time(&rawtime);
+		int headerPos = 0;
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "HTTP/1.1 %d Switching Protocols\r\n", statusCode);
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Connection: upgrade\r\n");
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Sec-WebSocket-Accept: %s\r\n", serverKey.c_str());
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Upgrade: websocket\r\n\r\n");
+
+		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) header[headerPos] = 0;
+
+		return contentSize + headerPos;
+	}
 
 
 	/////////////////////////////////////////////////////
@@ -203,6 +296,7 @@ public:
 
 
 	/////////////////////////////////////////////////////
+	//SHA1
 #define SHA1_SIZE_BYTE 20
 	typedef struct SHAstate_st
 	{
@@ -264,49 +358,17 @@ public:
 	*/
 	static int SHA1_String(const unsigned char* inputString, unsigned long len, unsigned char* pOutSHA1Buf);
 
+	/////////////////////////////////////////////////////
 	static bool is_base64(unsigned char c);
 	static std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 	static std::string base64_decode(std::string const& encoded_string);
 	/////////////////////////////////////////////////////
-	static int makeWS(char * header, char * content, int statusCode, const char * key, const char * msg) {
-		if (NULL == content) {
-			return 0;
-		}
-		if (NULL == header) {
-			return 0;
-		}
-		if (NULL == msg) {
-			return 0;
-		}
-		//º∆À„key
-		const char * MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-		string serverKey = string(key) + MAGIC_KEY;
-		unsigned char message_digest[20];
-		SHA1_String((const unsigned char*)serverKey.c_str(), serverKey.size(), message_digest);
-		serverKey = base64_encode(message_digest, 20);
-
-		int contentSize;
-		for (contentSize = 0; msg[contentSize] && contentSize < MAX_BUFFERSIZE; contentSize++) {
-			content[contentSize] = msg[contentSize];
-		}
-		content[contentSize] = 0;
-		time_t rawtime;
-		time(&rawtime);
-		int headerPos = 0;
-		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "HTTP/1.1 %d Switching Protocols\r\n", statusCode);
-		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Connection: upgrade\r\n");
-		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Sec-WebSocket-Accept: %s\r\n", serverKey.c_str());
-		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) headerPos += sprintf(header + headerPos, "Upgrade: websocket\r\n\r\n");
-
-		if (headerPos >= 0 && headerPos < MAX_BUFFERSIZE) header[headerPos] = 0;
-
-		return contentSize + headerPos;
-	}
 
 	///////////////////////////////////////////////////////
 	//AES
 	static string DecryptionAES(const string& strSrc);
 
+	/////////////////////////////////////
 	static int match(const char * src, const char * dest) {
 		if (NULL == src) {
 			return 0;

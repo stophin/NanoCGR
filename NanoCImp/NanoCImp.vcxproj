@@ -83,11 +83,9 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\NanoC\AES.cpp" />
     <ClCompile Include="NanoCImp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\NanoC\AES.h" />
     <ClInclude Include="INanoCImp.h" />
     <ClInclude Include="NanoCImp.h" />
     <ClInclude Include="Platform.h" />

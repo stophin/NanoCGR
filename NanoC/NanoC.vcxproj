@@ -84,7 +84,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AES.h" />
     <ClInclude Include="CharString.h" />
     <ClInclude Include="INanoC.h" />
     <ClInclude Include="MultiLinkList.h" />
@@ -93,7 +92,6 @@
     <ClInclude Include="Platform.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AES.cpp" />
     <ClCompile Include="CharString.cpp" />
     <ClCompile Include="MultiLinkList.cpp" />
     <ClCompile Include="NanoC.cpp" />
