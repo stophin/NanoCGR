@@ -280,6 +280,12 @@ void NanoCImp::MainLoop() {
 									}
 									else {
 										printf("WS: Unknown\n");
+
+										//error
+										int size = CharString::encodeFrame(charString->str, WS_TEXT_FRAME, "5:::{\"name\":\"error\",\"args\":[\"eJwFwckSQzAAANC7X3GwxBSHHqhlatcwJbdYolpUS4J+fd8jAA3mAXAxrQ3NYMw0TZn1pOr5KvQnpeqXbLq1Lg7Rbg318aU2XD/NcofGeC2NKhoTIHh1VyjPsuSEw09blr03KgSofph6T4gtix4KTLDbo6HRLRBPHfoRVSgA7coL3B01gsCNMZGBKbVUdAZR2Sw2c8xHCKdYSi3txdewzXPj/AcnBTli\"]}");
+										if (GetNanoC()->sendMessage(charString->session, charString->str, size) > 0) {
+											printf("WebSocket Send\n");
+										}
 									}
 								}
 							}

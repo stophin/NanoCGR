@@ -671,7 +671,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 	return session->connectionType;
 }
 
-int NetListener::sendMessage(INetSession * session, const char * buf) {
+int NetListener::sendMessage(INetSession * session, const char * buf, int size) {
 	if (session == NULL) {
 		return -1;
 	}
@@ -680,16 +680,20 @@ int NetListener::sendMessage(INetSession * session, const char * buf) {
 		return -1;
 	}
 
+	if (size == 0) {
+		size = strlen(buf);
+	}
+
 #ifdef _NANOC_WINDOWS_
 	WSABUF  wasBuf;
 	wasBuf.buf = (CHAR*)buf;
-	wasBuf.len = (ULONG)strlen(buf);
+	wasBuf.len = (ULONG)size;
 	DWORD dwBytes = -1;
 
-	return send(_session->handleData.socket, buf, strlen(buf), 0);
+	return send(_session->handleData.socket, buf, size, 0);
 	//return WSASend(_session->handleData.socket, &wasBuf, 1, &dwBytes, 0, &_session->operationData.overlapped, NULL); 
 #else
-	return write(_session->socket, buf, strlen(buf));
+	return write(_session->socket, buf, size);
 #endif
 }
 

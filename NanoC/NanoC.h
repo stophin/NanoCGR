@@ -22,7 +22,7 @@ public:
 public:
 	HINSTANCE hInstance;
 
-	virtual int sendMessage(INetSession * session, const char * buf);
+	virtual int sendMessage(INetSession * session, const char * buf, int size = 0);
 	virtual int closeSession(INetSession * session);
 };
 

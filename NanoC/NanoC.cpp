@@ -132,8 +132,8 @@ void NanoC::SetModelInstance(INanoCModel * iModel) {
 }
 
 
-int NanoC::sendMessage(INetSession * session, const char * buf) {
-	return GetNetListener()->sendMessage(session, buf);
+int NanoC::sendMessage(INetSession * session, const char * buf, int size) {
+	return GetNetListener()->sendMessage(session, buf, size);
 }
 
 int NanoC::closeSession(INetSession * session) {
