@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NanoCImp", "NanoCImp\NanoCI
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetListener", "NetListener\NetListener.vcxproj", "{C4619FE8-F5D6-42AE-9F97-CC5A4AB01E59}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetConnector", "NetConnector\NetConnector.vcxproj", "{0F08970E-760A-404B-BAB2-2DE8D1AE5CBB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -32,6 +34,10 @@ Global
 		{C4619FE8-F5D6-42AE-9F97-CC5A4AB01E59}.Debug|Win32.Build.0 = Debug|Win32
 		{C4619FE8-F5D6-42AE-9F97-CC5A4AB01E59}.Release|Win32.ActiveCfg = Release|Win32
 		{C4619FE8-F5D6-42AE-9F97-CC5A4AB01E59}.Release|Win32.Build.0 = Release|Win32
+		{0F08970E-760A-404B-BAB2-2DE8D1AE5CBB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0F08970E-760A-404B-BAB2-2DE8D1AE5CBB}.Debug|Win32.Build.0 = Debug|Win32
+		{0F08970E-760A-404B-BAB2-2DE8D1AE5CBB}.Release|Win32.ActiveCfg = Release|Win32
+		{0F08970E-760A-404B-BAB2-2DE8D1AE5CBB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
