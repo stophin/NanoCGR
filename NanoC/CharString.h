@@ -5,7 +5,7 @@
 
 #include "../NanoC/NanoType.h"
 
-#define MAX_BUFFERSIZE 8192
+#define MAX_BUFFERSIZE 32768
 
 
 class INetSession;
@@ -50,11 +50,11 @@ public:
 		if (frameLength < 2) {
 			return 0;
 		}
-		//检查扩展为并忽略
+		//检查扩展位并忽略
 		if ((inFrame[0] & 0x70) != 0x0) {
 			return 0;
 		}
-		//fin位：为1表示已接收完整保温，为0表示继续监听后续报文
+		//fin位：为1表示已接收完整报文，为0表示继续监听后续报文
 		if ((inFrame[0] & 0x80) != 0x80) {
 			return 0;
 		}
@@ -72,10 +72,10 @@ public:
 			if (0x7e == payloadLength) {
 				//unsigned short payloadLength16b = 0;
 				//unsigned short payloadFieldExtraBytes = 2;
-				unsigned short payloadLength16b = 0;
-				payloadLength16b = (unsigned short)(&inFrame[2]);
-				//payloadLength = ntohs(payloadLength16b);
-				payloadLength = payloadLength16b;
+				payLoadExtraBytes = 2;
+				unsigned short * payloadLength16b = 0;
+				payloadLength16b = (unsigned short*)(&inFrame[payLoadExtraBytes]);
+				payloadLength = ntohs(*payloadLength16b);;
 			}
 			else if (0x7f == payloadLength) {
 				//数据过长暂不支持
