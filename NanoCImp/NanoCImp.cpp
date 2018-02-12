@@ -306,6 +306,20 @@ void NanoCImp::MainLoop() {
 
 							break;
 				}
+				case 3://https
+				{
+						   printf("HTTPS GOT\n");
+						   const char * str = charString->getStr();
+
+						   printf("Message Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
+						   printf("%s\n", str);
+
+						   //»Ø¸´
+						   if (GetNanoC()->sendMessage(charString->session, str) > 0) {
+							   printf("Message Send\n");
+						   }
+						   break;
+				}
 				default://Normal Stream
 				{
 							charString->Reflush();

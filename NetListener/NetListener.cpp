@@ -605,15 +605,21 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 
 		//解析数据是否是http请求
 		int connectionType = 0;
-		if (CharString::match(buf, "GET")) {
+		if (CharString::match(buf, "GET") > 0) {
 			connectionType = 1;
 		}
-		else if (CharString::match(buf, "POST")) {
+		else if (CharString::match(buf, "POST") > 0) {
 			connectionType = 2;
 		}
+		//解析数据是否是https请求
+		else if (CharString::match(buf, "\x16") > 0) {
+			//0x16： 握手记录
+			connectionType = 3;
+		}
 		//TODO
-		//http请求
-		if (connectionType) {
+		//http请求，websocket请求也是通过http进行握手
+		if (connectionType == 1 ||
+			connectionType == 2) {
 			session->connectionType = connectionType;
 			char * buffer = charString->__str;
 			for (int i = 0; i < 12; i++) {
@@ -633,9 +639,37 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			*pprotocol = 1;
 			buf = buffer;
 		}
+		//https握手
+		else if (connectionType == 3) {
+			session->connectionType = connectionType;
+			printf("HTTPS hello\n");
+			char * buffer = charString->__str;
+			for (int i = 0; i < 12; i++) {
+				buffer[i] = 0;
+			}
+			int * ptSize = (int*)&buffer[0];
+			int * pprotocol = (int*)&buffer[4];
+			int * psize = (int*)&buffer[8];
+			char * _buffer = buffer + 12;
+			int len;
+			//去除长度为size以内的0
+			for (len = 0; /*buf[len]*/len < size && len < MAX_BUFFERSIZE - 12; len++) {
+				_buffer[len] = buf[len];
+			}
+			_buffer[len] = 0;
+			*ptSize = len + 12;
+			*psize = len;
+			*pprotocol = 3;
+			buf = buffer;
+		}
 		else {
+			//https消息
+			if (session->connectionType == 3) {
+				printf("HTTPS\n");
+			}
 			//WebSocket
-			if (session->connectionType) {
+			//websocket是以1:GET或者2:POST握手
+			else if (session->connectionType) {
 				char * buffer = charString->__str;
 				for (int i = 0; i < 12; i++) {
 					buffer[i] = 0;
