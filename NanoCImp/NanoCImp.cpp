@@ -65,7 +65,7 @@ void NanoCImp::MainLoop() {
 				{
 						   printf("Http:\n");
 						   const char * str = charString->getStr();
-						  // printf("%s\n", str);
+						  printf("%s\n", str);
 
 						   //½âÎöµØÖ·
 						   const char * url = str;
