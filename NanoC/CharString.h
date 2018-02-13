@@ -441,7 +441,10 @@ public:
 				cc++;
 			}
 			//设置实际大小
-			_str[len - cc] = 0;
+			unsigned int __len = len - cc;
+			if (__len > 0 && __len < MAX_BUFFERSIZE) {
+				_str[__len] = 0;
+			}
 		} else {
 			_str[0] = 0;
 			printf("Trans failed(ANSI): %d\n", _len);
@@ -456,7 +459,10 @@ public:
 		WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)str, len, __str, _len, NULL, NULL);
 		if (_len > 0) {
 			//设置实际大小
-			__str[len - cc + (len - 2 * cc) / 2] = 0;
+			unsigned int __len = len - cc + (len - 2 * cc) / 2;
+			if (__len > 0 && __len < MAX_BUFFERSIZE) {
+				__str[__len] = 0;
+			}
 		}
 		else {
 			__str[0] = 0;
@@ -547,9 +553,9 @@ public:
 
 	INetSession * session;
 
-	char _str[MAX_BUFFERSIZE];
-	char __str[MAX_BUFFERSIZE];
-	char str[MAX_BUFFERSIZE];
+	char _str[MAX_BUFFERSIZE + 1];
+	char __str[MAX_BUFFERSIZE + 1];
+	char str[MAX_BUFFERSIZE + 1];
 
 	int used;
 	int f;

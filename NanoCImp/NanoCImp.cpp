@@ -339,7 +339,7 @@ void NanoCImp::MainLoop() {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
-		pThis->Sleep(100);
+		//pThis->Sleep(100);
 	}
 
 	printf("This is NanoCImp MainLoop End\n");

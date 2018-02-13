@@ -120,7 +120,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
-		pThis->Sleep(100);
+		//pThis->Sleep(100);
 	}
 
 	printf("MainThread exited\n");
