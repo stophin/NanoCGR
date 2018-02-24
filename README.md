@@ -2,10 +2,10 @@
 NanoCGR: CGR Server  
   
 What's Included:  
-  Unicode to ANSI/UTF-8 encoding;
-  HTTP listen and response;
-  WebSocket handshack, frame encode/decocde and response;
-  HTTPS listen and response(not completed);
+  Unicode to ANSI/UTF-8 encoding;  
+  HTTP listen and response;  
+  WebSocket handshack, frame encode/decocde and response;  
+  HTTPS listen and response(not completed);  
   
   
 HOWTO:  
