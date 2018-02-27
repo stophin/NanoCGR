@@ -383,6 +383,9 @@ public:
 			}
 			return 0;
 		}
+		if (!src[i] && dest[i]) {
+			return 0;
+		}
 		return i;
 	}
 

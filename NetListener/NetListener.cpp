@@ -612,7 +612,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			connectionType = 2;
 		}
 		//解析数据是否是https请求
-		else if (CharString::match(buf, "\x16") > 0) {
+		else if (CharString::match(buf, "\x16\x3\x1") > 0) {
 			//0x16： 握手记录
 			connectionType = 3;
 		}
