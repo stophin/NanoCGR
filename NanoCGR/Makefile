@@ -34,9 +34,7 @@ clean_s: clean
 	
 	
 run_d:
-	export  LD_LIBRARY_PATH=LD_LIBRARY_PATH:`pwd`/Debug
 	../Debug/nanocgr_d
 	
 run_s:
-	export  LD_LIBRARY_PATH=LD_LIBRARY_PATH:`pwd`/Debug
 	../Debug/nanocgr_s

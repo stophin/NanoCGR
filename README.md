@@ -16,6 +16,9 @@ Linux:
     instance loading failure. Using dynamic lib is suggested.  
   That's all done.   
   Use make run_d or make run_s to run with the lib you built(s: ststic, d: dynamic).  
+
+2.You should use the following cmd to add Debug/ to LD_LIBRARY_PATH:  
+    export  LD_LIBRARY_PATH=LD_LIBRARY_PATH:`pwd`/Debug  
   
 Windows: using vs2013 to build the project.  
   
