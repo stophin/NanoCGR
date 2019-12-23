@@ -1,4 +1,4 @@
-// NetListener.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌĞòµÄµ¼³öº¯Êı¡£
+// NetListener.cpp : å®šä¹‰ DLL åº”ç”¨ç¨‹åºçš„å¯¼å‡ºå‡½æ•°ã€‚
 //
 
 #include "NetListener.h"
@@ -43,7 +43,7 @@ void NetListener::Init() {
 	INT32 n32StateFlag = 0;
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		// ³õÊ¼»¯Socket¿â  
+		// åˆå§‹åŒ–Socketåº“  
 		WSADATA wsaData;
 		int iRc = WSAStartup(MAKEWORD(2, 2), &wsaData);
 		if (0 != iRc) {
@@ -55,7 +55,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//´´½¨IOCPÄÚºË¶ÔÏó
+		//åˆ›å»ºIOCPå†…æ ¸å¯¹è±¡
 		this->hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 		if (NULL == hCompletionPort) {
 			printf("Error create IOCP\n");
@@ -65,7 +65,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//´´½¨Á÷Ê½Ì×½Ó×Ö£¬°ó¶¨µ½±¾»ú
+		//åˆ›å»ºæµå¼å¥—æ¥å­—ï¼Œç»‘å®šåˆ°æœ¬æœº
 		//this->hListenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 		this->hListenSocket = socket(AF_INET, SOCK_STREAM, 0);
 		if (INVALID_SOCKET == hListenSocket) {
@@ -91,7 +91,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//°ó¶¨µ½±¾»ú
+		//ç»‘å®šåˆ°æœ¬æœº
 		sockaddr_in stAddr = { 0 };
 		stAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 		stAddr.sin_family = AF_INET;
@@ -106,7 +106,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//½«Ì×½Ó×ÖÉèÖÃÎª¼àÌıÄ£Ê½
+		//å°†å¥—æ¥å­—è®¾ç½®ä¸ºç›‘å¬æ¨¡å¼
 		//start listen, 128 backup connection times
 		int iRc = listen(hListenSocket, 128);
 		if (iRc < 0) {
@@ -134,12 +134,12 @@ void NetListener::Init() {
 		//bind listen socket with io completion port
 		//HANDLE hResult = ::CreateIoCompletionPort((HANDLE)hListenSocket, hCompletionPort, (SIZE_INT)-2, 0);
 		//start io thread
-		//´´½¨ÏûÏ¢³Ø
+		//åˆ›å»ºæ¶ˆæ¯æ± 
 		static CharStringPool pool;
 		this->msgPool = &pool;
-		//´´½¨Ïß³ÌËø
+		//åˆ›å»ºçº¿ç¨‹é”
 		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
-		//´´½¨Ïß³Ì
+		//åˆ›å»ºçº¿ç¨‹
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -167,8 +167,8 @@ INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 
 	session->connectionType = 0;
 
-	//Ê¹ÓÃAcceptEx½ÓÊÕ¿Í»§¶ËÁ¬½Ó¶ø²»ÊÇ¿ª±ÙÏß³ÌµÈ´ıÁ¬½Ó
-	LPFN_ACCEPTEX lpfnAcceptEx = NULL;//AcceptExº¯ÊıÖ¸Õë
+	//ä½¿ç”¨AcceptExæ¥æ”¶å®¢æˆ·ç«¯è¿æ¥è€Œä¸æ˜¯å¼€è¾Ÿçº¿ç¨‹ç­‰å¾…è¿æ¥
+	LPFN_ACCEPTEX lpfnAcceptEx = NULL;//AcceptExå‡½æ•°æŒ‡é’ˆ
 	GUID guidAcceptEx = WSAID_ACCEPTEX;
 	DWORD dwBytes = 0;
 
@@ -180,10 +180,10 @@ INT32 NetListener::MakeFreeIOCompletionPort(INetSession* _session) {
 	}
 
 	if (0 == n32RetFlag) {
-		// ¿ªÊ¼ÔÚ½ÓÊÜÌ×½Ó×ÖÉÏ´¦ÀíI/OÊ¹ÓÃÖØµşI/O»úÖÆ
-		// ÔÚĞÂ½¨µÄÌ×½Ó×ÖÉÏÍ¶µİÒ»¸ö»ò¶à¸öÒì²½
-		// WSARecv»òWSASendÇëÇó£¬ÕâĞ©I/OÇëÇóÍê³Éºó£¬¹¤×÷ÕßÏß³Ì»áÎªI/OÇëÇóÌá¹©·şÎñ    
-		// µ¥I/O²Ù×÷Êı¾İ(I/OÖØµş)
+		// å¼€å§‹åœ¨æ¥å—å¥—æ¥å­—ä¸Šå¤„ç†I/Oä½¿ç”¨é‡å I/Oæœºåˆ¶
+		// åœ¨æ–°å»ºçš„å¥—æ¥å­—ä¸ŠæŠ•é€’ä¸€ä¸ªæˆ–å¤šä¸ªå¼‚æ­¥
+		// WSARecvæˆ–WSASendè¯·æ±‚ï¼Œè¿™äº›I/Oè¯·æ±‚å®Œæˆåï¼Œå·¥ä½œè€…çº¿ç¨‹ä¼šä¸ºI/Oè¯·æ±‚æä¾›æœåŠ¡    
+		// å•I/Oæ“ä½œæ•°æ®(I/Oé‡å )
 		LPPER_IO_OPERATION_DATA PerIoData = NULL;
 		//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
 		PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
@@ -275,7 +275,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		}
 
 		if (0 == n32RetFlag) {
-			// ¼ì²éÔÚÌ×½Ó×ÖÉÏÊÇ·ñÓĞ´íÎó·¢Éú
+			// æ£€æŸ¥åœ¨å¥—æ¥å­—ä¸Šæ˜¯å¦æœ‰é”™è¯¯å‘ç”Ÿ
 			if (0 == BytesTransferred){
 				printf("Socket error: 0 bytes transfered\n");
 				
@@ -284,13 +284,13 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				//GlobalFree(PerIoData);
 				//PerIoData->netSession->bIfUse = false;
 
-				//ÖØĞÂÎªsessionÅäÖÃsocketÁ¬½Ó
+				//é‡æ–°ä¸ºsessioné…ç½®socketè¿æ¥
 				pThis->MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
 				continue;
 			}
 
 			if (PerIoData->operationType == 1) {
-				//»ñÈ¡Ò»¸önet session
+				//è·å–ä¸€ä¸ªnet session
 				//NetSession * session = netSession.GetFreeSession();
 				NetSession * session = (NetSession*)PerIoData->netSession;
 				if (NULL == session) {
@@ -300,12 +300,12 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 				if (0 == n32RetFlag) {
 					printf("Created session on id: %d\n", session->iSessionID);
-					// ´´½¨ÓÃÀ´ºÍÌ×½Ó×Ö¹ØÁªµÄµ¥¾ä±úÊı¾İĞÅÏ¢½á¹¹
-					//PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// ÔÚ¶ÑÖĞÎªÕâ¸öPerHandleDataÉêÇëÖ¸¶¨´óĞ¡µÄÄÚ´æ
+					// åˆ›å»ºç”¨æ¥å’Œå¥—æ¥å­—å…³è”çš„å•å¥æŸ„æ•°æ®ä¿¡æ¯ç»“æ„
+					//PerHandleData = (LPPER_HANDLE_DATA)GlobalAlloc(GPTR, sizeof(PER_HANDLE_DATA));	// åœ¨å †ä¸­ä¸ºè¿™ä¸ªPerHandleDataç”³è¯·æŒ‡å®šå¤§å°çš„å†…å­˜
 					PerHandleData = (LPPER_HANDLE_DATA)&session->handleData;
 					PerHandleData->socket = PerIoData->client;
 					//memcpy(&PerHandleData->ClientAddr, &saRemote, remoteLen);
-					//¿Í»§¶ËÌ×½Ó×ÖºÍÍê³É¶Ë¿Ú¹ØÁª
+					//å®¢æˆ·ç«¯å¥—æ¥å­—å’Œå®Œæˆç«¯å£å…³è”
 					HANDLE hResult = ::CreateIoCompletionPort((HANDLE)PerIoData->client, pThis->hCompletionPort, (SIZE_INT)PerHandleData, 0);
 					if (NULL == pThis->hCompletionPort) {
 						printf("Error connect IOCP\n");
@@ -314,15 +314,15 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				}
 
 				if (0 == n32RetFlag) {
-					//´Ósession»ñÈ¡ÖØµşIO£¬ÔÚÏÂÃæÉèÖÃÊı¾İ²Ù×÷
+					//ä»sessionè·å–é‡å IOï¼Œåœ¨ä¸‹é¢è®¾ç½®æ•°æ®æ“ä½œ
 					//PerIoData = (LPPER_IO_OPERATION_DATA)GlobalAlloc(GPTR, sizeof(PER_IO_OPERATEION_DATA));
 					PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
 				}
 			}
 			
 			if (0 == n32RetFlag) {
-				// ÎªÏÂÒ»¸öÖØµşµ÷ÓÃ½¨Á¢µ¥I/O²Ù×÷Êı¾İ
-				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // Çå¿ÕÄÚ´æ
+				// ä¸ºä¸‹ä¸€ä¸ªé‡å è°ƒç”¨å»ºç«‹å•I/Oæ“ä½œæ•°æ®
+				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // æ¸…ç©ºå†…å­˜
 				PerIoData->databuff.len = MAX_BUFFERSIZE;
 				PerIoData->databuff.buf = PerIoData->buffer;
 				PerIoData->operationType = 0;	// read
@@ -332,7 +332,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 			if (0 == n32RetFlag) {
 				NetSession * session = (NetSession*)PerIoData->netSession;
 				printf("Msg recevd on session %d(%d)\n", session->iSessionID, BytesTransferred);
-				// ¿ªÊ¼Êı¾İ´¦Àí£¬½ÓÊÕÀ´×Ô¿Í»§¶ËµÄÊı¾İ
+				// å¼€å§‹æ•°æ®å¤„ç†ï¼Œæ¥æ”¶æ¥è‡ªå®¢æˆ·ç«¯çš„æ•°æ®
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 				PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf, (int)BytesTransferred);
@@ -374,7 +374,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//´´½¨Á÷Ê½Ì×½Ó×Ö£¬°ó¶¨µ½±¾»ú
+		//åˆ›å»ºæµå¼å¥—æ¥å­—ï¼Œç»‘å®šåˆ°æœ¬æœº
 		//this->hListenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 		this->hListenSocket = socket(AF_INET, SOCK_STREAM, 0);
 		if (INVALID_SOCKET == hListenSocket) {
@@ -394,7 +394,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//°ó¶¨µ½±¾»ú
+		//ç»‘å®šåˆ°æœ¬æœº
 		sockaddr_in stAddr = { 0 };
 		stAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		stAddr.sin_family = AF_INET;
@@ -416,7 +416,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		//½«Ì×½Ó×ÖÉèÖÃÎª¼àÌıÄ£Ê½
+		//å°†å¥—æ¥å­—è®¾ç½®ä¸ºç›‘å¬æ¨¡å¼
 		//start listen, 128 backup connection times
 		int iRc = listen(hListenSocket, 128);
 		if (iRc < 0) {
@@ -427,7 +427,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		// ÉèÖÃÃ¿¸ö¼¯³ÉÔÊĞí´ò¿ªµÄ×î´óÎÄ¼şÊıÄ¿
+		// è®¾ç½®æ¯ä¸ªé›†æˆå…è®¸æ‰“å¼€çš„æœ€å¤§æ–‡ä»¶æ•°ç›®
 		rlimit rlt;
 		rlt.rlim_max = rlt.rlim_cur = MAX_SESSIONSIZE;
 		int iRc = setrlimit(RLIMIT_NOFILE, &rlt);
@@ -440,7 +440,7 @@ void NetListener::Init() {
 
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
-		// ´´½¨epoll
+		// åˆ›å»ºepoll
 		epoll_event	ev;
 		epoll_fd = epoll_create(MAX_SESSIONSIZE);
 		ev.events = EPOLLIN | EPOLLET;
@@ -455,11 +455,11 @@ void NetListener::Init() {
 	n32StateFlag--;
 	if (0 == n32RetFlag) {
 		//start io thread
-		//´´½¨ÏûÏ¢³Ø
+		//åˆ›å»ºæ¶ˆæ¯æ± 
 		this->msgPool = (CharStringPool*)GetPool();
-		//´´½¨Ïß³ÌËø
+		//åˆ›å»ºçº¿ç¨‹é”
 		__NANOC_THREAD_MUTEX_INIT__(hMutex, this);
-		//´´½¨Ïß³Ì
+		//åˆ›å»ºçº¿ç¨‹
 		__NANOC_THREAD_BEGIN__(m_phIOThread, NetListener::IOCPThread, this);
 		if (NULL == m_phIOThread) {
 			printf("IOCP thread start error\n");
@@ -508,7 +508,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		n32RetFlag = 0;
 
 		if (0 == n32RetFlag) {
-			//·µ»Øepoll»ñÈ¡µÄÏûÏ¢Êı£¬²¢copyÊı¾İµ½eventÀïÃæ
+			//è¿”å›epollè·å–çš„æ¶ˆæ¯æ•°ï¼Œå¹¶copyæ•°æ®åˆ°eventé‡Œé¢
 			wait_fds = epoll_wait(pThis->epoll_fd, evs, pThis->cur_fds, -1);
 			if (wait_fds == -1) {
 				printf("Epoll wait error: %d: %s\n", errno, strerror(errno));
@@ -517,10 +517,10 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 		}
 
 		if (0 == n32RetFlag) {
-			//±éÀúevent
+			//éå†event
 			for (int i = 0; i < wait_fds; i++) {
-				printf("working on %d/%d %d\n", i, wait_fds, evs[i].data.fd);
-				//acceptÁ¬½ÓÇëÇó
+				printf("working on %d/%d fd %d\n", i+1, wait_fds, evs[i].data.fd);
+				//acceptè¿æ¥è¯·æ±‚
 				if (evs[i].data.fd == pThis->hListenSocket && pThis->cur_fds < MAX_SESSIONSIZE) {
 					conn_fds = accept(pThis->hListenSocket, (sockaddr*)&cliaddr, &len);
 					if (INVALID_SOCKET == conn_fds) {
@@ -596,14 +596,14 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) {
 
 	//printf("SID %d:  %s\n", session->iSessionID, buf);
-	//»ñÈ¡ÍøÂçÏûÏ¢·¢ËÍ±£´æµ½¶ÓÁĞÀïÃæ
+	//è·å–ç½‘ç»œæ¶ˆæ¯å‘é€ä¿å­˜åˆ°é˜Ÿåˆ—é‡Œé¢
 	if (this->msgPool->used >= POOL_MAX) {
 		this->msgPool->gc();
 	}
 	CharString * charString = this->msgPool->get();
 	if (charString != NULL) {
 
-		//½âÎöÊı¾İÊÇ·ñÊÇhttpÇëÇó
+		//è§£ææ•°æ®æ˜¯å¦æ˜¯httpè¯·æ±‚
 		int connectionType = 0;
 		if (CharString::match(buf, "GET") > 0) {
 			connectionType = 1;
@@ -611,13 +611,13 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 		else if (CharString::match(buf, "POST") > 0) {
 			connectionType = 2;
 		}
-		//½âÎöÊı¾İÊÇ·ñÊÇhttpsÇëÇó
+		//è§£ææ•°æ®æ˜¯å¦æ˜¯httpsè¯·æ±‚
 		else if (CharString::match(buf, "\x16\x3\x1") > 0) {
-			//0x16£º ÎÕÊÖ¼ÇÂ¼
+			//0x16ï¼š æ¡æ‰‹è®°å½•
 			connectionType = 3;
 		}
 		//TODO
-		//httpÇëÇó£¬websocketÇëÇóÒ²ÊÇÍ¨¹ıhttp½øĞĞÎÕÊÖ
+		//httpè¯·æ±‚ï¼Œwebsocketè¯·æ±‚ä¹Ÿæ˜¯é€šè¿‡httpè¿›è¡Œæ¡æ‰‹
 		if (connectionType == 1 ||
 			connectionType == 2) {
 			session->connectionType = connectionType;
@@ -639,7 +639,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			*pprotocol = 1;
 			buf = buffer;
 		}
-		//httpsÎÕÊÖ
+		//httpsæ¡æ‰‹
 		else if (connectionType == 3) {
 			session->connectionType = connectionType;
 			printf("HTTPS hello\n");
@@ -652,7 +652,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			int * psize = (int*)&buffer[8];
 			char * _buffer = buffer + 12;
 			int len;
-			//È¥³ı³¤¶ÈÎªsizeÒÔÄÚµÄ0
+			//å»é™¤é•¿åº¦ä¸ºsizeä»¥å†…çš„0
 			for (len = 0; /*buf[len]*/len < size && len < MAX_BUFFERSIZE - 12; len++) {
 				_buffer[len] = buf[len];
 			}
@@ -663,12 +663,12 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			buf = buffer;
 		}
 		else {
-			//httpsÏûÏ¢
+			//httpsæ¶ˆæ¯
 			if (session->connectionType == 3) {
 				printf("HTTPS\n");
 			}
 			//WebSocket
-			//websocketÊÇÒÔ1:GET»òÕß2:POSTÎÕÊÖ
+			//websocketæ˜¯ä»¥1:GETæˆ–è€…2:POSTæ¡æ‰‹
 			else if (session->connectionType) {
 				char * buffer = charString->__str;
 				for (int i = 0; i < 12; i++) {
@@ -679,7 +679,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 				int * psize = (int*)&buffer[8];
 				char * _buffer = buffer + 12;
 				int len;
-				//È¥³ı³¤¶ÈÎªsizeÒÔÄÚµÄ0
+				//å»é™¤é•¿åº¦ä¸ºsizeä»¥å†…çš„0
 				for (len = 0; /*buf[len]*/len < size && len < MAX_BUFFERSIZE - 12; len++) {
 					_buffer[len] = buf[len];
 				}
@@ -732,12 +732,14 @@ int NetListener::sendMessage(INetSession * session, const char * buf, int size) 
 }
 
 int NetListener::closeConnection(INetSession * _session) {
-	printf("Sesssion closed\n");
 #ifdef _NANOC_WINDOWS_
+	printf("Sesssion id closed\n");
 	this->MakeFreeIOCompletionPort(_session);
 #else
 	NetSession * session = (NetSession*)_session;
+	printf("Sesssion id %d closed\n", session->socket);
 	session->connectionType = 0;
+	session->bIfUse = false;
 	epoll_event ev;
 	close(session->socket);
 	epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, session->socket, &ev);
