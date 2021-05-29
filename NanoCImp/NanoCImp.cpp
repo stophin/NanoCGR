@@ -3,6 +3,8 @@
 
 #include "Platform.h"
 
+#include "../NetListener/NetListener.h"
+
 NanoCImp::NanoCImp() {
 	printf("NanoCImp is registered\n");
 	this->isRunning = 1;
@@ -23,6 +25,8 @@ void NanoCImp::Sleep(INT32 n32MilliSecond) {
 	usleep(n32MilliSecond * 1000);
 #endif
 }
+
+void constServer(CharString * charString, NetSession * session);
 
 void NanoCImp::MainLoop() {
 	printf("This is NanoCImp MainLoop\n");
@@ -301,6 +305,14 @@ void NanoCImp::MainLoop() {
 							}
 							else {
 								printf("WS: common\n");
+
+
+								//»Ø¸´
+								//loginInfo
+								CharString::encodeFrame(charString->str, WS_TEXT_FRAME, charString->_str);
+								if (GetNanoC()->sendMessage(charString->session, charString->str) > 0) {
+									printf("WebSocket Send\n");
+								}
 							}
 
 
@@ -328,10 +340,14 @@ void NanoCImp::MainLoop() {
 						   printf("Message Get(%d/%d):", msgQueue->linkcount, GetNanoC()->msgPool->used);
 						   printf("%s\n", str);
 
+						   constServer(charString, (NetSession*)charString->session);
+
 						   //»Ø¸´
+						   /*
 						   if (GetNanoC()->sendMessage(charString->session, str) > 0) {
 							   printf("Message Send\n");
 						   }
+						   */
 
 						   break;
 				}
@@ -339,7 +355,7 @@ void NanoCImp::MainLoop() {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
-		//pThis->Sleep(100);
+		pThis->Sleep(100);
 	}
 
 	printf("This is NanoCImp MainLoop End\n");
@@ -348,4 +364,83 @@ void NanoCImp::MainLoop() {
 NanoCImp g_NanoCImp;
 extern "C" __NANOC_EXPORT__ INanoCImp * GetNanoCImp() {
 	return &g_NanoCImp;
+}
+
+typedef enum NanoCGR_Protocol_tag {
+	Nano_Login,
+	Nano_Logout,
+	Nano_Position
+} NanoCGR_Protocol;
+
+void constServer(CharString * charString, NetSession * session) {
+	float x, y;
+	const char *str = charString->str;
+	int len = strlen(str);
+	char * temp = charString->_str;
+	char * _temp = charString->__str;
+	CharString::base64_decode(str, len, temp);
+	NanoCGR_Protocol p;
+	int offset = 0;
+	int size = 100;
+	NetSession * sessions[100];
+	DecodeProtocol(CharString, temp, offset, size, p);
+	switch (p) {
+	case Nano_Login:
+		printf("Login %d\n", session->iSessionID);
+
+		offset = 0;
+		EncodeProtocol(CharString, temp, offset, size, Nano_Login, -session->iSessionID);
+		temp[offset] = 0;
+		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+		GetNanoC()->sendMessage(session, _temp);
+
+		len = GetNanoC()->aliveSession((INetSession**)sessions, size);
+		for (int i = 0; i < len; i++) {
+			if (sessions[i] == session) {
+				continue;
+			}
+			offset = 0;
+			EncodeProtocol(CharString, temp, offset, size, Nano_Login, sessions[i]->iSessionID);
+			temp[offset] = 0;
+			CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+			GetNanoC()->sendMessage(session, _temp);
+		}
+
+		offset = 0;
+		EncodeProtocol(CharString, temp, offset, size, Nano_Login, session->iSessionID);
+		temp[offset] = 0;
+		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+		len = GetNanoC()->emitMessage(session, _temp);
+		printf("Emit: %d\n", len);
+		break;
+	case Nano_Logout:
+		printf("Logout %d\n", session->iSessionID);
+
+		offset = 0;
+		EncodeProtocol(CharString, temp, offset, size, Nano_Logout, session->iSessionID);
+		temp[offset] = 0;
+		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+		GetNanoC()->emitMessage(session, _temp);
+		break;
+	case Nano_Position:
+		DecodeProtocol(CharString, temp, offset, size, x, y);
+		printf("Position %d %.2f, %.2f\n", session->iSessionID, x, y);
+
+		offset = 0;
+		EncodeProtocol(CharString, temp, offset, size, Nano_Position, session->iSessionID, x, y);
+		temp[offset] = 0;
+		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+		GetNanoC()->emitMessage(session, _temp);
+		break;
+	default:
+		printf("Unknown %d %s\n", session->iSessionID, str);
+		if (CharString::match(str, "ENV_SOCK_CLOSE")) {
+			offset = 0;
+			EncodeProtocol(CharString, temp, offset, size, Nano_Logout, session->iSessionID);
+			temp[offset] = 0;
+			CharString::base64_encode((const unsigned char*)temp, offset, _temp);
+			GetNanoC()->emitMessage(session, _temp);
+		}
+		break;
+	}
 }

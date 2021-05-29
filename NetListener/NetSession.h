@@ -11,6 +11,7 @@ public:
 	INT iSessionID;
 	BOOL bIfUse;
 	INT connectionType;
+	BOOL bIsAlive;
 };
 
 #ifdef _NANOC_WINDOWS_
@@ -71,8 +72,12 @@ public:
 	~NetSessionManager();
 
 	NetSession * GetFreeSession(SOCKET socket = 0);
+	int aliveSession(INetSession** sessions, int size = 0);
 
 	INT32 getSize();
+	NetSession * operator[](int i) {
+		return &netSession[i];
+	}
 private:
 	INT32 n32Size;
 	NetSession * netSession;

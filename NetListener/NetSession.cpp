@@ -46,20 +46,45 @@ NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
 #else
 
 NetSession * NetSessionManager::GetFreeSession(SOCKET socket) {
-	for (int i = 0; i < this->n32Size; i++) {
-		if (this->netSession[i].bIfUse) {
-			if (0 != socket) {
+	if (0 != socket) {
+		for (int i = 0; i < this->n32Size; i++) {
+			if (this->netSession[i].bIfUse) {
 				if (socket == this->netSession[i].socket) {
 					return &this->netSession[i];
 				}
 			}
-			continue;
 		}
-		this->netSession[i].bIfUse = true;
-		this->netSession[i].socket = socket;
-		return &this->netSession[i];
+		return NULL;
 	}
-	return NULL;
+	else {
+		for (int i = 0; i < this->n32Size; i++) {
+			if (this->netSession[i].bIfUse) {
+				continue;
+			}
+			this->netSession[i].bIfUse = true;
+			this->netSession[i].socket = socket;
+			return &this->netSession[i];
+		}
+		return NULL;
+	}
 }
 
 #endif
+
+
+int NetSessionManager::aliveSession(INetSession** sessions, int size) {
+	int index = 0;
+	for (int i = 0; i < this->n32Size; i++) {
+		if (!this->netSession[i].bIfUse) {
+			continue;
+		}
+		if (!this->netSession[i].bIsAlive) {
+			continue;
+		}
+		sessions[index++] = &this->netSession[i];
+		if (index >= size) {
+			break;
+		}
+	}
+	return index;
+}

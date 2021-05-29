@@ -28,6 +28,8 @@ public:
 public:
 	virtual int addMsgQueue(INetSession * session, const char * buf, int size = 0);
 	virtual int sendMessage(INetSession * session, const char * buf, int size = 0);
+	virtual int emitMessage(INetSession * session, const char * buf, int size = 0);
+	virtual int aliveSession(INetSession** sessions, int size = 0);
 	virtual int closeConnection(INetSession * session);
 };
 

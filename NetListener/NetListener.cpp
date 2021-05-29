@@ -285,7 +285,8 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				//PerIoData->netSession->bIfUse = false;
 
 				//重新为session配置socket连接
-				pThis->MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
+				//pThis->MakeFreeIOCompletionPort((NetSession*)PerIoData->netSession);
+				pThis->closeConnection((NetSession*)PerIoData->netSession);
 				continue;
 			}
 
@@ -334,6 +335,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				printf("Msg recevd on session %d(%d)\n", session->iSessionID, BytesTransferred);
 				// 开始数据处理，接收来自客户端的数据
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+				session->bIsAlive = true;
 				PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf, (int)BytesTransferred);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
@@ -570,6 +572,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 						printf("Recv from session ID: %d (%d) \n", evs[i].data.fd, nRead);
 						if (NULL != session) {
 							__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
+							session->bIsAlive = true;
 							buf[nRead] = 0;
 							pThis->addMsgQueue(session, buf, nRead);
 							__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
@@ -731,7 +734,26 @@ int NetListener::sendMessage(INetSession * session, const char * buf, int size) 
 #endif
 }
 
+int NetListener::emitMessage(INetSession *session, const char * buf, int size) {
+	NetSession * _session;
+	int count = 0;
+	for (int i = this->netSession.getSize() - 1; i >= 0; i--) {
+		_session = this->netSession[i];
+		if (_session == session) {
+			continue;
+		}
+		if (!_session->bIfUse) {
+			continue;
+		}
+		this->sendMessage(_session, buf, size);
+		count++;
+	}
+	return count;
+}
+
 int NetListener::closeConnection(INetSession * _session) {
+	_session->bIfUse = false;
+	_session->bIsAlive = false;
 #ifdef _NANOC_WINDOWS_
 	printf("Sesssion id closed\n");
 	this->MakeFreeIOCompletionPort(_session);
@@ -745,7 +767,13 @@ int NetListener::closeConnection(INetSession * _session) {
 	epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, session->socket, &ev);
 	--this->cur_fds;
 #endif
+	const char * msg = "ENV_SOCK_CLOSE";
+	this->addMsgQueue(_session, msg, strlen(msg));
 	return 0;
+}
+
+int NetListener::aliveSession(INetSession** sessions, int size) {
+	return this->netSession.aliveSession(sessions, size);
 }
 
 

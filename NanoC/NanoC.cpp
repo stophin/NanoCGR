@@ -120,7 +120,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 			}
 		}
 		__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hNetMutex);
-		//pThis->Sleep(100);
+		pThis->Sleep(100);
 	}
 
 	printf("MainThread exited\n");
@@ -134,6 +134,15 @@ void NanoC::SetModelInstance(INanoCModel * iModel) {
 
 int NanoC::sendMessage(INetSession * session, const char * buf, int size) {
 	return GetNetListener()->sendMessage(session, buf, size);
+}
+
+int NanoC::emitMessage(INetSession * session, const char * buf, int size) {
+	return GetNetListener()->emitMessage(session, buf, size);
+}
+
+
+int NanoC::aliveSession(INetSession** sessions, int size) {
+	return GetNetListener()->aliveSession(sessions, size);
 }
 
 int NanoC::closeSession(INetSession * session) {
