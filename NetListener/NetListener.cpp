@@ -292,8 +292,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 			if (PerIoData->operationType == 1) {
 				//获取一个net session
-				//NetSession * session = netSession.GetFreeSession();
+				//NetSession * session = pThis->netSession.GetFreeSession();
 				NetSession * session = (NetSession*)PerIoData->netSession;
+				session->bIfUse = true;
 				if (NULL == session) {
 					printf("Error create session\n");
 					n32RetFlag = -1;
@@ -336,7 +337,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				// 开始数据处理，接收来自客户端的数据
 				__NANOC_THREAD_MUTEX_LOCK__(pThis->hMutex);
 				session->bIsAlive = true;
-				PerIoData->databuff.buf[BytesTransferred] = 0;
+				//PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf, (int)BytesTransferred);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
 			}
@@ -598,6 +599,7 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 
 int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) {
 
+	int tsize = size;
 	//printf("SID %d:  %s\n", session->iSessionID, buf);
 	//获取网络消息发送保存到队列里面
 	if (this->msgPool->used >= POOL_MAX) {
@@ -640,6 +642,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			*ptSize = len + 12;
 			*psize = len;
 			*pprotocol = 1;
+			tsize = 0;
 			buf = buffer;
 		}
 		//https握手
@@ -663,6 +666,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			*ptSize = len + 12;
 			*psize = len;
 			*pprotocol = 3;
+			tsize = 0;
 			buf = buffer;
 		}
 		else {
@@ -690,6 +694,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 				*ptSize = len + 12;
 				*psize = len;
 				*pprotocol = 2;
+				tsize = 0;
 				buf = buffer;
 			}
 			else {
@@ -697,7 +702,7 @@ int NetListener::addMsgQueue(INetSession * session, const char * buf, int size) 
 			}
 		}
 
-		charString->set(buf);
+		charString->set(buf, tsize);
 		charString->session = session;
 		charString->f = this->msgQueue.linkcount;
 		this->msgQueue.insertLink(charString);
@@ -743,6 +748,9 @@ int NetListener::emitMessage(INetSession *session, const char * buf, int size) {
 			continue;
 		}
 		if (!_session->bIfUse) {
+			continue;
+		}
+		if (!_session->bIsAlive) {
 			continue;
 		}
 		this->sendMessage(_session, buf, size);

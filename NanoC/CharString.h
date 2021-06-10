@@ -664,7 +664,19 @@ enum _##clsName{\
 	}
 	/////////////////////////////////////
 
-	void set(const char * str) {
+	void set(const char * str, int size = 0) {
+		if (size > 0) {
+			len = size;
+			if (len < 0) {
+				len = 0;
+			}else if (len > MAX_BUFFERSIZE) {
+				len = MAX_BUFFERSIZE;
+			}
+			memcpy(this->str, str, len);
+			this->str[len] = 0;
+			this->pos = 0;
+			return;
+		}
 		if (NULL == str) {
 			len = 1;
 			this->str[0] = 0;

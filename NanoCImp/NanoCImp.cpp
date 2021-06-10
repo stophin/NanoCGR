@@ -372,6 +372,37 @@ typedef enum NanoCGR_Protocol_tag {
 	Nano_Position
 } NanoCGR_Protocol;
 
+int sendMessage(INetSession * session, const char * buf, int size=0) {
+	char temp[300];
+	int len = size;
+	if (size == 0) {
+		len = strlen(buf);
+	}
+	int *rlen = (int*)temp;
+	char * str = temp + sizeof(int);
+	memcpy(str, buf, len);
+	len += sizeof(int);
+	*rlen = len;
+
+	int r = GetNanoC()->sendMessage(session, temp, len);
+	return r;
+}
+int emitMessage(INetSession * session, const char * buf, int size=0) {
+	char temp[300];
+	int len = size;
+	if (size == 0) {
+		len = strlen(buf);
+	}
+	int *rlen = (int*)temp;
+	char * str = temp + sizeof(int);
+	memcpy(str, buf, len);
+	len += sizeof(int);
+	*rlen = len;
+
+	int r = GetNanoC()->emitMessage(session, temp, len);
+	return r;
+}
+
 void constServer(CharString * charString, NetSession * session) {
 	float x, y;
 	const char *str = charString->str;
@@ -392,7 +423,7 @@ void constServer(CharString * charString, NetSession * session) {
 		EncodeProtocol(CharString, temp, offset, size, Nano_Login, -session->iSessionID);
 		temp[offset] = 0;
 		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-		GetNanoC()->sendMessage(session, _temp);
+		sendMessage(session, _temp);
 
 		len = GetNanoC()->aliveSession((INetSession**)sessions, size);
 		for (int i = 0; i < len; i++) {
@@ -403,14 +434,15 @@ void constServer(CharString * charString, NetSession * session) {
 			EncodeProtocol(CharString, temp, offset, size, Nano_Login, sessions[i]->iSessionID);
 			temp[offset] = 0;
 			CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-			GetNanoC()->sendMessage(session, _temp);
+			sendMessage(session, _temp);
 		}
+		printf("Send: %d\n", len);
 
 		offset = 0;
 		EncodeProtocol(CharString, temp, offset, size, Nano_Login, session->iSessionID);
 		temp[offset] = 0;
 		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-		len = GetNanoC()->emitMessage(session, _temp);
+		len = emitMessage(session, _temp);
 		printf("Emit: %d\n", len);
 		break;
 	case Nano_Logout:
@@ -420,7 +452,7 @@ void constServer(CharString * charString, NetSession * session) {
 		EncodeProtocol(CharString, temp, offset, size, Nano_Logout, session->iSessionID);
 		temp[offset] = 0;
 		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-		GetNanoC()->emitMessage(session, _temp);
+		emitMessage(session, _temp);
 		break;
 	case Nano_Position:
 		DecodeProtocol(CharString, temp, offset, size, x, y);
@@ -430,7 +462,7 @@ void constServer(CharString * charString, NetSession * session) {
 		EncodeProtocol(CharString, temp, offset, size, Nano_Position, session->iSessionID, x, y);
 		temp[offset] = 0;
 		CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-		GetNanoC()->emitMessage(session, _temp);
+		emitMessage(session, _temp);
 		break;
 	default:
 		printf("Unknown %d %s\n", session->iSessionID, str);
@@ -439,7 +471,7 @@ void constServer(CharString * charString, NetSession * session) {
 			EncodeProtocol(CharString, temp, offset, size, Nano_Logout, session->iSessionID);
 			temp[offset] = 0;
 			CharString::base64_encode((const unsigned char*)temp, offset, _temp);
-			GetNanoC()->emitMessage(session, _temp);
+			emitMessage(session, _temp);
 		}
 		break;
 	}
