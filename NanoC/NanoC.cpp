@@ -110,8 +110,9 @@ __NANOC_THREAD_FUNC_BEGIN__(NanoC::MainThread) {
 				}
 				_charString = pThis->msgPool->get();
 				if (_charString != NULL) {
-					_charString->set(charString->str);
+					_charString->set(charString->str, charString->len);
 					_charString->session = charString->session;
+					_charString->pos = charString->pos;
 					_charString->f = charString->f;
 					pThis->msgQueue.insertLink(_charString);
 				}
