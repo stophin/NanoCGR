@@ -321,15 +321,6 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 					PerIoData = (LPPER_IO_OPERATION_DATA)&session->operationData;
 				}
 			}
-			
-			if (0 == n32RetFlag) {
-				// 为下一个重叠调用建立单I/O操作数据
-				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
-				PerIoData->databuff.len = MAX_BUFFERSIZE;
-				PerIoData->databuff.buf = PerIoData->buffer;
-				PerIoData->operationType = 0;	// read
-				WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
-			}
 
 			if (0 == n32RetFlag) {
 				NetSession * session = (NetSession*)PerIoData->netSession;
@@ -340,6 +331,15 @@ __NANOC_THREAD_FUNC_BEGIN__(NetListener::IOCPThread) {
 				//PerIoData->databuff.buf[BytesTransferred] = 0;
 				pThis->addMsgQueue(session, PerIoData->databuff.buf, (int)BytesTransferred);
 				__NANOC_THREAD_MUTEX_UNLOCK__(pThis->hMutex);
+			}
+
+			if (0 == n32RetFlag) {
+				// 为下一个重叠调用建立单I/O操作数据
+				ZeroMemory(&(PerIoData->overlapped), sizeof(OVERLAPPED)); // 清空内存
+				PerIoData->databuff.len = MAX_BUFFERSIZE;
+				PerIoData->databuff.buf = PerIoData->buffer;
+				PerIoData->operationType = 0;	// read
+				WSARecv(PerHandleData->socket, &(PerIoData->databuff), 1, &RecvBytes, &Flags, &(PerIoData->overlapped), NULL);
 			}
 		}
 	}
